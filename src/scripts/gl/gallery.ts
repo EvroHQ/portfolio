@@ -42,6 +42,8 @@ interface Slide {
   el: HTMLElement;
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   full: number;
+  /** where the plane was when it started expanding: the DOM keeps moving (scrub, hover parallax) */
+  from?: DOMRect;
 }
 
 const geo = new THREE.PlaneGeometry(1, 1, 32, 32);
@@ -106,6 +108,10 @@ export class Gallery {
       vertexShader: vert,
       fragmentShader: frag,
       transparent: true,
+      // all planes share z=0: depth testing makes overlapping planes z-fight (flicker) while one expands
+      // over the others, so draw order alone (renderOrder) decides what is on top
+      depthTest: false,
+      depthWrite: false,
       uniforms: {
         uTex: { value: t.tex }, uImg: { value: new THREE.Vector2(t.w, t.h) }, uSize: { value: new THREE.Vector2(1, 1) },
         uVel: { value: 0 }, uReveal: { value: 0 }, uFull: { value: 0 },
@@ -136,11 +142,12 @@ export class Gallery {
     const s = this.slides.find((x) => x.el === el);
     if (!s) return Promise.resolve(false);
     this.expanding = s;
+    s.from = el.getBoundingClientRect();
     s.mesh.renderOrder = 10;
     return new Promise<boolean>((res) => {
       const t0 = performance.now();
       const step = () => {
-        const p = Math.min(1, (performance.now() - t0) / 900);
+        const p = Math.min(1, (performance.now() - t0) / 650);
         s.full = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
         if (p < 1) requestAnimationFrame(step); else res(true);
       };
@@ -154,7 +161,7 @@ export class Gallery {
     // ScrollTrigger stops updating at rest; let the last impulse settle.
     this.velocity *= Math.exp(-12 * dt);
     for (const s of this.slides) {
-      const r = s.el.getBoundingClientRect();
+      const r = s.from ?? s.el.getBoundingClientRect();
       const u = s.mesh.material.uniforms;
       const vis = r.bottom > -200 && r.top < e.h + 200 && r.right > -400 && r.left < e.w + 400;
       s.mesh.visible = vis || s.full > 0;

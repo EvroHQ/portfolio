@@ -149,6 +149,17 @@ html.gl-on .studio-light { display: none; }
 /* scramble placeholder width stability */
 [data-scramble] { font-variant-numeric: tabular-nums; }
 
+/* reel → case, step 1: while a plane grows to full screen, nothing in the DOM (which sits above the canvas) may draw over it */
+.is-expanding :is(.work__head, .work__progress, .work__intro, .work__outro, .slide__meta, .nav, .rail, .cursor) { opacity: 0 !important; transition: opacity .15s linear; }
+.is-expanding .slide__media { box-shadow: none !important; transition: none; }
+
+/* step 2: the expanded cover, full screen and centre-cropped exactly like the WebGL plane, then settles into its frame (app.ts) */
+/* sized exactly like the #gl canvas (100vw includes the scrollbar), or the cover would re-crop at the swap */
+.case-veil { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh; z-index: 80; pointer-events: none; overflow: hidden; background: var(--bg); }
+.case-veil > .cover.cover { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+.case-veil > .cover.cover::after { display: none; }
+.case-veil > .cover.cover img, .case-veil > .cover.cover svg { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+
 /* page transition curtain */
 @keyframes vt-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes vt-down { to { transform: translateY(-8%) scale(.96); opacity: .3; } }

@@ -2,6 +2,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { navigate } from "astro:transitions/client";
+import { prefetch } from "astro:prefetch";
 import {
   createEngine,
   lowTier,
@@ -62,6 +63,8 @@ const renderTick = () => {
 let lenis: Lenis | null = null;
 let gallery: Gallery | null = null;
 let closeMenu: (() => void) | null = null;
+/** reel → case: the clicked cover, carried over the page swap as a full-screen veil */
+let expandCover: Element | null = null;
 
 // custom cursor
 const cursor = document.querySelector<HTMLElement>(".cursor");
@@ -575,6 +578,8 @@ async function initPage() {
     m.target.alpha = page === "error" ? 1 : 0.45;
     m.target.heat = page === "error" ? 0.6 : 0;
   }
+  // the halftone portrait lives behind the home hero only
+  if (backdrop) backdrop.portrait = page === "home" ? 1 : 0;
   if (backdrop && page !== "home")
     backdrop.target =
       page === "error"
@@ -990,24 +995,20 @@ function initWork(_m: Matter | null, abort: AbortSignal) {
         if (!gallery || e.metaKey || e.ctrlKey) return;
         e.preventDefault();
         lenis?.stop();
-        document
-          .querySelectorAll<HTMLElement>(
-            ".slide__meta, .work__head, .work__progress, .nav, .rail",
-          )
-          .forEach((el) => gsap.to(el, { opacity: 0, duration: 0.4 }));
-        const ok = await gallery.expand(
-          sl.querySelector<HTMLElement>("[data-slide-media]")!,
-        );
+        // the DOM sits above the WebGL canvas: clear everything that would draw over the growing plane
+        root.classList.add("is-expanding");
+        cleanup.push(() => root.classList.remove("is-expanding"));
+        const media = sl.querySelector<HTMLElement>("[data-slide-media]")!;
+        // fetch the case page while the plane grows, so the swap is instant once it fills the screen
+        prefetch(link.href, { ignoreSlowConnection: true });
+        const ok = await gallery.expand(media);
         if (!ok) {
           location.href = link.href;
           return;
         }
         root.dataset.vt = "cut";
-        try {
-          sessionStorage.setItem("ck-expand", new URL(link.href).pathname);
-        } catch {
-          /* storage blocked */
-        }
+        // the same (already loaded) cover goes over the next page as a full-screen veil
+        expandCover = media.querySelector(".cover")?.cloneNode(true) as Element | null;
         navigate(link.href);
       },
       { signal: abort },
@@ -1099,57 +1100,50 @@ function initMarquee() {
 
 function initCase() {
   const frame = document.querySelector<HTMLElement>("[data-case-cover]");
-  if (!frame || reduce) return;
+  // arriving from the reel, the veil is already settling into the frame
+  if (!frame || reduce || document.querySelector(".case-veil")) return;
   const img = frame.querySelector(".cover");
-  let fromReel = false;
-  try {
-    fromReel = sessionStorage.getItem("ck-expand") === location.pathname;
-    sessionStorage.removeItem("ck-expand");
-  } catch {
-    /* storage blocked */
-  }
-  if (fromReel) {
-    // the reel's plane filled the screen: start the cover there and let it sink into its frame
-    const r = frame.getBoundingClientRect();
-    const k = Math.max(innerWidth / r.width, innerHeight / r.height);
-    gsap.fromTo(
-      frame,
-      {
-        x: innerWidth / 2 - (r.left + r.width / 2),
-        y: innerHeight / 2 - (r.top + r.height / 2),
-        scale: k,
-      },
-      {
-        x: 0,
-        y: 0,
-        scale: 1,
-        duration: 1.4,
-        ease: "expo.inOut",
-        delay: 0.1,
-        clearProps: "transform",
-      },
-    );
-  } else {
-    gsap.fromTo(
-      frame,
-      { clipPath: "inset(18% 8% 0% 8% round 8px)" },
-      {
-        clipPath: "inset(0% 0% 0% 0% round 8px)",
-        duration: 1.6,
-        ease: EASE,
-        delay: 0.2,
-        clearProps: "clipPath",
-      },
-    );
-    gsap.fromTo(
-      img,
-      { scale: 1.25 },
-      { scale: 1, duration: 1.8, ease: EASE, delay: 0.2 },
-    );
-  }
+  gsap.fromTo(
+    frame,
+    { clipPath: "inset(18% 8% 0% 8% round 8px)" },
+    {
+      clipPath: "inset(0% 0% 0% 0% round 8px)",
+      duration: 1.6,
+      ease: EASE,
+      delay: 0.2,
+      clearProps: "clipPath",
+    },
+  );
+  gsap.fromTo(
+    img,
+    { scale: 1.25 },
+    { scale: 1, duration: 1.8, ease: EASE, delay: 0.2 },
+  );
 }
 
 /* ---------- lifecycle with the client router ---------- */
+
+/**
+ * reel → case: the full-screen cover (injected before the first paint, framed like the WebGL plane)
+ * shrinks down into the cover's frame on the page. Its box animates, not a scale, so the image is
+ * re-cropped smoothly to its own ratio and nothing (border, radius) gets magnified.
+ */
+function settleVeil() {
+  const veil = document.querySelector<HTMLElement>(".case-veil");
+  if (!veil) return;
+  const frame = document.querySelector<HTMLElement>("[data-case-cover]");
+  if (reduce || !frame) { veil.remove(); return; }
+  gsap.set(frame, { opacity: 0 });
+  const r = frame.getBoundingClientRect();
+  gsap.to(veil, {
+    left: r.left, top: r.top, width: r.width, height: r.height, borderRadius: 8,
+    duration: 1.1, ease: "expo.inOut",
+    onComplete: () => { gsap.set(frame, { clearProps: "opacity" }); veil.remove(); },
+  });
+}
+
+// the instant the new page is in the DOM, before its scripts and setup run
+document.addEventListener("astro:after-swap", settleVeil);
 
 document.addEventListener("astro:page-load", () => {
   cleanup.forEach((fn) => fn());
@@ -1168,4 +1162,17 @@ document.addEventListener("astro:before-swap", (e) => {
   for (const c of ["js", "gl-on", "no-gl", "has-cursor"])
     if (root.classList.contains(c)) next.classList.add(c);
   if (root.dataset.vt === "cut") next.dataset.vt = "cut";
+  // reel → case: put the expanded cover over the incoming page so its first frame matches the WebGL plane
+  if (expandCover) {
+    const doc = (e as any).newDocument as Document;
+    const veil = doc.createElement("div");
+    veil.className = "case-veil";
+    veil.setAttribute("aria-hidden", "true");
+    const cover = doc.importNode(expandCover, true) as Element;
+    cover.querySelector("svg")?.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    cover.querySelectorAll("img").forEach((i) => i.setAttribute("loading", "eager"));
+    veil.append(cover);
+    doc.body.append(veil);
+    expandCover = null;
+  }
 });

@@ -1,5 +1,5 @@
-import * as THREE from 'three';
-import { type Engine, lowTier, reduceMotion } from './engine';
+import * as THREE from "three";
+import { type Engine, lowTier, reduceMotion } from "./engine";
 
 /**
  * The site's background, drawn first in the shared canvas:
@@ -14,7 +14,8 @@ void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(p
 const frag = /* glsl */ `
 precision highp float;
 uniform vec2 uRes;
-uniform float uTime, uScroll, uSmoke, uGlow, uEmber, uLightOn;
+uniform float uTime, uScroll, uSmoke, uGlow, uEmber, uLightOn, uPortrait;
+uniform sampler2D uPortraitTex;
 uniform vec2 uLight;          // cursor, CSS px from the top-left
 varying vec2 vUv;
 
@@ -64,6 +65,25 @@ void main(){
   float reveal = 0.06 + light * 0.9;
   col += ivory * pt * reveal * 0.32;
 
+  // halftone portrait (home hero): a finer dot screen, centred, each dot sized by the photo's brightness;
+  // it rises with the scroll at half speed and fades out as the hero leaves, brighter under the cursor light
+  if (uPortrait > 0.001) {
+    float S = uRes.y * 0.96;
+    vec2 o = vec2((uRes.x - S) * 0.5, (uRes.y - S) * 0.5 - uScroll * 0.5);
+    float hg = max(6.0, floor(uRes.y / 120.0));          // ~120 rows over the screen height
+    vec2 hc = (floor((px - o) / hg) + 0.5) * hg;          // this cell's centre, in portrait px
+    vec2 hp = hc / S;
+    float scrollOut = 1.0 - smoothstep(0.0, uRes.y * 0.8, uScroll);
+    if (hp.x > 0.0 && hp.x < 1.0 && hp.y > 0.0 && hp.y < 1.0) {
+      float lum = texture2D(uPortraitTex, vec2(hp.x, 1.0 - hp.y)).r;
+      lum = smoothstep(0.03, 0.55, lum);                  // low-key photo: only the highlights carry it
+      float r = hg * 0.5 * sqrt(lum) * 0.95;
+      float hd = smoothstep(r + 0.7, r - 0.7, length(px - o - hc));
+      float fade = scrollOut * smoothstep(1.0, 0.86, hp.y); // scroll out; soft bottom edge
+      col += mix(ivory, ember, 0.25) * hd * (0.2 + light * 0.4) * fade * uPortrait;
+    }
+  }
+
   // vignette
   vec2 c = vUv - 0.5;
   col *= 1.0 - dot(c * vec2(1.1, 1.3), c * vec2(1.1, 1.3)) * 0.85;
@@ -75,6 +95,8 @@ export class Backdrop {
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   /** smoothed by tick() */
   target = { smoke: 1, glow: 0, ember: 0 };
+  /** 1 on the home page (the halftone portrait behind the hero), 0 elsewhere; smoothed by tick() */
+  portrait = 0;
 
   constructor(private engine: Engine) {
     const mat = new THREE.ShaderMaterial({
@@ -85,11 +107,26 @@ export class Backdrop {
       depthWrite: false,
       uniforms: {
         uRes: { value: new THREE.Vector2(engine.w, engine.h) },
-        uTime: { value: 0 }, uScroll: { value: 0 },
-        uSmoke: { value: 1 }, uGlow: { value: 0 }, uEmber: { value: 0 },
-        uLight: { value: new THREE.Vector2(engine.w * 0.6, engine.h * 0.4) }, uLightOn: { value: 0 },
+        uTime: { value: 0 },
+        uScroll: { value: 0 },
+        uSmoke: { value: 1 },
+        uGlow: { value: 0 },
+        uEmber: { value: 0 },
+        uLight: { value: new THREE.Vector2(engine.w * 0.6, engine.h * 0.4) },
+        uLightOn: { value: 0 },
+        uPortrait: { value: 0 },
+        uPortraitTex: { value: null },
       },
     });
+    // the halftone portrait's source: a small grayscale photo, sampled per dot (shows once loaded)
+    new THREE.TextureLoader().load(
+      `${import.meta.env.BASE_URL.replace(/\/$/, "")}/portrait.png`,
+      (tex) => {
+        tex.minFilter = THREE.LinearFilter;
+        tex.generateMipmaps = false;
+        mat.uniforms.uPortraitTex.value = tex;
+      },
+    );
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     this.mesh.renderOrder = -10;
     this.mesh.frustumCulled = false;
@@ -102,7 +139,10 @@ export class Backdrop {
   /** the plane sits on z=0, where 1 unit = 1 CSS px: just make it the viewport's size */
   private fit() {
     this.mesh.scale.set(this.engine.w, this.engine.h, 1);
-    (this.mesh.material.uniforms.uRes.value as THREE.Vector2).set(this.engine.w, this.engine.h);
+    (this.mesh.material.uniforms.uRes.value as THREE.Vector2).set(
+      this.engine.w,
+      this.engine.h,
+    );
   }
 
   private tick(t: number, dt: number) {
@@ -113,11 +153,16 @@ export class Backdrop {
     u.uSmoke.value += (this.target.smoke - u.uSmoke.value) * k;
     u.uGlow.value += (this.target.glow - u.uGlow.value) * k;
     u.uEmber.value += (this.target.ember - u.uEmber.value) * k;
+    const p = u.uPortraitTex.value ? this.portrait : 0;
+    u.uPortrait.value += (p - u.uPortrait.value) * (1 - Math.pow(0.15, dt));
     const e = this.engine;
     const on = e.pointerActive && !reduceMotion ? 1 : 0;
     u.uLightOn.value += (on - u.uLightOn.value) * (1 - Math.pow(0.1, dt));
     // pointer is world px (centre origin, y up) → CSS px (top-left origin), followed lazily
     const L = u.uLight.value as THREE.Vector2;
-    L.lerp(new THREE.Vector2(e.pointer.x + e.w / 2, e.h / 2 - e.pointer.y), 1 - Math.pow(0.03, dt));
+    L.lerp(
+      new THREE.Vector2(e.pointer.x + e.w / 2, e.h / 2 - e.pointer.y),
+      1 - Math.pow(0.03, dt),
+    );
   }
 }
