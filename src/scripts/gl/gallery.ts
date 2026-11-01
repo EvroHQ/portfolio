@@ -86,6 +86,7 @@ async function textureFor(el: HTMLElement): Promise<{ tex: THREE.Texture; w: num
 
 export class Gallery {
   slides: Slide[] = [];
+  private destroyed = false;
   private offs: (() => void)[] = [];
   private group = new THREE.Group();
   velocity = 0;
@@ -100,6 +101,7 @@ export class Gallery {
   private async add(el: HTMLElement) {
     const t = await textureFor(el);
     if (!t) return;
+    if (this.destroyed) { t.tex.dispose(); return; }
     const mat = new THREE.ShaderMaterial({
       vertexShader: vert,
       fragmentShader: frag,
@@ -168,8 +170,13 @@ export class Gallery {
   }
 
   destroy() {
+    this.destroyed = true;
     this.offs.forEach((fn) => fn());
-    this.slides.forEach((s) => { s.mesh.material.uniforms.uTex.value.dispose(); s.mesh.material.dispose(); });
+    this.slides.forEach((s) => {
+      s.el.closest('[data-slide]')?.classList.remove('is-gl');
+      s.mesh.material.uniforms.uTex.value.dispose();
+      s.mesh.material.dispose();
+    });
     this.engine.scene.remove(this.group);
     this.slides = [];
   }

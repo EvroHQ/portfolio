@@ -67,7 +67,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
     font: 600 clamp(40px, calc(var(--u) * 5.8), 132px)/.86 var(--sans); letter-spacing: -.065em; text-transform: uppercase;
     transition: transform .8s var(--ease), letter-spacing .8s var(--ease);
   }
-  .slide__link:hover .slide__title { transform: translateX(18px); letter-spacing: -.045em; }
   .slide__kind { margin-top: 14px; font-size: clamp(15px, calc(var(--u) * 1.15), 21px); color: var(--ink-2); display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
 
   .work__outro { flex: none; display: grid; gap: 40px; justify-items: start; padding-right: calc(var(--u) * 12); }
@@ -75,16 +74,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .work__progress span { display: block; height: 100%; background: var(--ember); transform-origin: left; transform: scaleX(0); }
 
   @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .slide__link:hover .slide__title { transform: translateX(18px); letter-spacing: -.045em; }
     .slide__link:is(:hover, :focus-visible) .slide__media {
       box-shadow: 0 14px 32px rgb(0 0 0 / .2);
     }
   }
 
   /* touch & small screens: a vertical reel, no pinning */
-  @media (max-width: 1023px) {
+  @media (max-width: 1023px), (hover: none), (pointer: coarse) {
     .work__pin { height: auto; overflow: visible; padding: 140px 0 80px; }
     .work__head { top: 80px; right: var(--gutter); }
-    .work__track { position: relative; flex-direction: column; align-items: stretch; gap: 88px; }
+    .work__track { position: relative; flex-direction: column; align-items: stretch; gap: 88px; will-change: auto; }
     .work__intro { width: 100%; }
     .slide { align-self: stretch; }
     .slide__media { width: 100%; height: auto; }

@@ -135,7 +135,7 @@ async function initPage() {
   cleanup.push(() => ac.abort());
   const page = root.dataset.page;
 
-  if (!reduce) {
+  if (!reduce && fine) {
     lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
     lenis.on('scroll', ScrollTrigger.update);
     const raf = (time: number) => lenis?.raf(time * 1000);
@@ -393,7 +393,6 @@ function initWork(_m: Matter | null, abort: AbortSignal) {
   const slides = [...track.querySelectorAll<HTMLElement>('[data-slide]')];
   const indexEl = document.querySelector<HTMLElement>('[data-work-index]');
   const bar = document.querySelector<HTMLElement>('[data-work-progress]');
-  const desktop = innerWidth >= 1024;
 
   if (fine && !reduce) {
     slides.forEach((sl) => {
@@ -423,11 +422,6 @@ function initWork(_m: Matter | null, abort: AbortSignal) {
     });
   }
 
-  if (engine && !lowTier && !reduce) {
-    gallery = new Gallery(engine, slides.map((s) => s.querySelector<HTMLElement>('[data-slide-media]')!));
-    cleanup.push(() => { gallery?.destroy(); gallery = null; });
-  }
-
   let current = -1;
   const setIndex = (i: number) => {
     if (i === current || !indexEl) return;
@@ -435,7 +429,14 @@ function initWork(_m: Matter | null, abort: AbortSignal) {
     scramble(indexEl, String(i + 1).padStart(2, '0'), 0.35);
   };
 
-  if (desktop) {
+  // Match the CSS layout and revert pin spacing/transforms when the mode changes.
+  const workMedia = gsap.matchMedia();
+  cleanup.push(() => workMedia.revert());
+  workMedia.add('(min-width: 1024px) and (hover: hover) and (pointer: fine)', () => {
+    const activeGallery = engine && !lowTier && !reduce
+      ? new Gallery(engine, slides.map((s) => s.querySelector<HTMLElement>('[data-slide-media]')!))
+      : null;
+    gallery = activeGallery;
     const dist = () => track.scrollWidth - innerWidth;
     const tween = gsap.to(track, {
       x: () => -dist(), ease: 'none',
@@ -451,16 +452,26 @@ function initWork(_m: Matter | null, abort: AbortSignal) {
         },
       },
     });
-    cleanup.push(() => tween.kill());
     // titles drift against the images for depth
     slides.forEach((sl) => {
       const meta = sl.querySelector('.slide__meta');
       gsap.fromTo(meta, { xPercent: 18 }, { xPercent: -18, ease: 'none', scrollTrigger: { trigger: sl, containerAnimation: tween, start: 'left right', end: 'right left', scrub: true } });
     });
-  } else {
-    slides.forEach((sl, i) => ScrollTrigger.create({ trigger: sl, start: 'top 60%', end: 'bottom 40%', onToggle: (s) => s.isActive && setIndex(i) }));
-    if (gallery) ScrollTrigger.create({ trigger: pin, start: 'top bottom', end: 'bottom top', onUpdate: (s) => (gallery!.velocity = gsap.utils.clamp(-30, 30, s.getVelocity() / 120)) });
-  }
+    return () => {
+      activeGallery?.destroy();
+      if (gallery === activeGallery) gallery = null;
+    };
+  });
+  workMedia.add('(max-width: 1023px), (hover: none), (pointer: coarse)', () => {
+    // The vertical reel only needs a counter, without pinning or scroll transforms.
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) setIndex(slides.indexOf(entry.target as HTMLElement));
+      });
+    }, { rootMargin: '-40% 0px -40% 0px' });
+    slides.forEach((sl) => observer.observe(sl));
+    return () => observer.disconnect();
+  });
 
   // click: the plane swells to full screen, then the case study takes over underneath
   slides.forEach((sl) => {
