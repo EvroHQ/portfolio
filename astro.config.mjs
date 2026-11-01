@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-// GitHub Pages serves this repo under /portfolio-v1. Set BASE_PATH in CI;
+// GitHub Pages serves this repo under /portfolio. Set BASE_PATH in CI;
 // locally the site runs at the root.
 const base = process.env.BASE_PATH ?? '/';
 

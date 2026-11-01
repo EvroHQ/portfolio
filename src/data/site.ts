@@ -6,7 +6,7 @@ export const site = {
   location: "Belgium",
   timeZone: "Europe/Brussels",
   email: "kirkoussis.christophe@hotmail.com",
-  url: "https://evrohq.github.io/portfolio-v1/",
+  url: "https://evrohq.github.io/portfolio/",
   description:
     "Christophe Kirkoussis is a full-stack developer and music producer based in Belgium, building desktop apps, AI pipelines, games, web platforms and the interfaces on top.",
   status: "Open to freelance work",
