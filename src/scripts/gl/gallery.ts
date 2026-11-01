@@ -3,10 +3,8 @@ import type { Engine } from './engine';
 
 const vert = /* glsl */ `
 uniform vec2 uSize;
-uniform float uVel, uHover, uTime, uFull;
-uniform vec2 uMouse;
+uniform float uVel, uFull;
 varying vec2 vUv;
-varying float vShade;
 void main(){
   vUv = uv;
   vec3 p = position * vec3(uSize, 1.0);
@@ -15,50 +13,34 @@ void main(){
   float bend = clamp(uVel, -8.0, 8.0) * (1.0 - uFull);
   p.z -= arc * bend;
   p.y += arc * bend * 0.15;
-  // A gentle hover lift keeps UI screenshots readable.
-  float md = distance(uv, uMouse);
-  float swell = (1.0 - smoothstep(0.0, 0.75, md)) * uHover;
-  p.z += swell * 12.0 * (1.0 - uFull);
-  vShade = swell;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
 }`;
 
 const frag = /* glsl */ `
 uniform sampler2D uTex;
 uniform vec2 uSize, uImg;
-uniform float uVel, uHover, uReveal, uFull, uTime;
-uniform vec2 uMouse;
-uniform vec3 uNight, uIvory, uEmber;
+uniform float uReveal;
+uniform vec3 uEmber;
 varying vec2 vUv;
-varying float vShade;
 void main(){
   // cover-fit, centred
   vec2 s = uSize / uImg;
   float sc = max(s.x, s.y);
   vec2 uv = (vUv - 0.5) * (uSize / (uImg * sc)) + 0.5;
-  uv = (uv - 0.5) * (1.0 - 0.06 * uHover * (1.0 - uFull)) + 0.5;
   // Sample all channels together: no colour fringes or liquid distortion.
   vec3 col = texture2D(uTex, uv).rgb;
-  // at rest: warm, half-desaturated and slightly lifted (the screenshots are dark UIs); full colour when played
-  float l = dot(col, vec3(0.299, 0.587, 0.114));
-  vec3 rest = mix(col, vec3(l) * vec3(1.06, 0.97, 0.88), 0.55);
-  rest = rest * 1.12 + uEmber * 0.035;
-  float colour = max(uHover, uFull);
-  col = mix(rest, col, colour);
-  col += vShade * 0.04;
   // reveal: a wipe from the bottom with a soft ember edge
   float edge = vUv.y - (1.0 - uReveal) * 1.15 + 0.15;
   float a = smoothstep(0.0, 0.02, edge);
   col = mix(col, uEmber, (1.0 - smoothstep(0.0, 0.08, edge)) * step(uReveal, 0.999) * a);
   gl_FragColor = vec4(col, a);
+  // Textures are decoded to linear RGB; match the original DOM image on output.
+  #include <colorspace_fragment>
 }`;
 
 interface Slide {
   el: HTMLElement;
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  hover: number;
-  hoverTarget: number;
-  mouse: THREE.Vector2;
   full: number;
 }
 
@@ -112,7 +94,7 @@ export class Gallery {
   constructor(private engine: Engine, els: HTMLElement[]) {
     engine.scene.add(this.group);
     els.forEach((el) => this.add(el));
-    this.offs.push(engine.onTick((t, dt) => this.tick(t, dt)));
+    this.offs.push(engine.onTick((_t, dt) => this.tick(dt)));
   }
 
   private async add(el: HTMLElement) {
@@ -124,29 +106,17 @@ export class Gallery {
       transparent: true,
       uniforms: {
         uTex: { value: t.tex }, uImg: { value: new THREE.Vector2(t.w, t.h) }, uSize: { value: new THREE.Vector2(1, 1) },
-        uVel: { value: 0 }, uHover: { value: 0 }, uReveal: { value: 0 }, uFull: { value: 0 }, uTime: { value: 0 },
-        uMouse: { value: new THREE.Vector2(0.5, 0.5) },
-        uNight: { value: new THREE.Color('#14100e') }, uIvory: { value: new THREE.Color('#f2ece2') }, uEmber: { value: new THREE.Color('#ff5a1f') },
+        uVel: { value: 0 }, uReveal: { value: 0 }, uFull: { value: 0 },
+        uEmber: { value: new THREE.Color('#ff5a1f') },
       },
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
     mesh.renderOrder = 5;
     this.group.add(mesh);
-    const slide: Slide = { el, mesh, hover: 0, hoverTarget: 0, mouse: new THREE.Vector2(0.5, 0.5), full: 0 };
+    const slide: Slide = { el, mesh, full: 0 };
     this.slides.push(slide);
     el.closest('[data-slide]')?.classList.add('is-gl');
-    const host = (el.closest('a') as HTMLElement) || el;
-    const move = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect();
-      slide.mouse.set((e.clientX - r.left) / r.width, 1 - (e.clientY - r.top) / r.height);
-    };
-    const enter = () => (slide.hoverTarget = 1);
-    const leave = () => (slide.hoverTarget = 0);
-    host.addEventListener('pointermove', move);
-    host.addEventListener('pointerenter', enter);
-    host.addEventListener('pointerleave', leave);
-    this.offs.push(() => { host.removeEventListener('pointermove', move); host.removeEventListener('pointerenter', enter); host.removeEventListener('pointerleave', leave); });
     // reveal when it first enters the viewport
     const io = new IntersectionObserver(([en]) => {
       if (!en.isIntersecting) return;
@@ -164,7 +134,6 @@ export class Gallery {
     const s = this.slides.find((x) => x.el === el);
     if (!s) return Promise.resolve(false);
     this.expanding = s;
-    s.hoverTarget = 1;
     s.mesh.renderOrder = 10;
     return new Promise<boolean>((res) => {
       const t0 = performance.now();
@@ -177,7 +146,7 @@ export class Gallery {
     });
   }
 
-  private tick(t: number, dt: number) {
+  private tick(dt: number) {
     const e = this.engine;
     const k = 1 - Math.pow(0.002, dt);
     // ScrollTrigger stops updating at rest; let the last impulse settle.
@@ -188,16 +157,12 @@ export class Gallery {
       const vis = r.bottom > -200 && r.top < e.h + 200 && r.right > -400 && r.left < e.w + 400;
       s.mesh.visible = vis || s.full > 0;
       if (!s.mesh.visible) continue;
-      s.hover += (s.hoverTarget - s.hover) * k;
       const c = e.rectToWorld(r);
       const f = s.full;
       s.mesh.position.set(c.x * (1 - f), c.y * (1 - f), 0);
       (u.uSize.value as THREE.Vector2).set(r.width + (e.w - r.width) * f, r.height + (e.h - r.height) * f);
       u.uVel.value += (this.velocity - u.uVel.value) * k;
-      u.uHover.value = s.hover;
       u.uFull.value = f;
-      u.uTime.value = t;
-      (u.uMouse.value as THREE.Vector2).lerp(s.mouse, 0.12);
       if (f > 0) u.uReveal.value = 1;
     }
   }
