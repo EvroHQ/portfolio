@@ -68,7 +68,9 @@ import { site } from '../data/site';
   .hero__scroll i { display: inline-block; font-style: normal; color: var(--ember); animation: nudge 1.8s var(--ease) infinite; }
   @keyframes nudge { 50% { transform: translateY(4px); } }
 
-  .js [data-intro='pending'] [data-hero-fade] { opacity: 0; transform: translateY(14px); }
+  :global(html.js [data-intro='pending']) [data-hero-fade] { opacity: 0; transform: translateY(14px); }
+  /* Keep loader and hero labels separate even if the intro fail-safe fires while fonts load. */
+  :global(html.js:has([data-loader]:not(.is-done))) [data-hero-fade] { visibility: hidden; }
 
   @media (max-width: 767px) {
     .hero__tl, .hero__tr { top: 78px; }
