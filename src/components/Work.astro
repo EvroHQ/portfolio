@@ -58,7 +58,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .slide { flex: none; position: relative; }
   .slide__link { display: block; }
   /* one shared height keeps the reel aligned; each width follows its image's ratio (no cropping) */
-  .slide__media { width: fit-content; height: min(calc(var(--u) * 29), 52vh); }
+  .slide__media { width: fit-content; height: min(calc(var(--u) * 29), 52vh); border-radius: 6px; transition: box-shadow .5s var(--ease); }
   .slide__media :global(.cover) { height: 100%; width: auto; transition: opacity .6s var(--ease); }
   .slide.is-gl .slide__media :global(.cover) { opacity: 0; }
   .slide__meta { position: relative; margin-top: 28px; pointer-events: none; }
@@ -73,6 +73,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .work__outro { flex: none; display: grid; gap: 40px; justify-items: start; padding-right: calc(var(--u) * 12); }
   .work__progress { position: absolute; left: var(--gutter); right: calc(var(--gutter) + 90px); bottom: 40px; height: 1px; background: var(--line); }
   .work__progress span { display: block; height: 100%; background: var(--ember); transform-origin: left; transform: scaleX(0); }
+
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .slide__link:is(:hover, :focus-visible) .slide__media {
+      box-shadow: 0 14px 32px rgb(0 0 0 / .2), 0 0 0 1px rgb(255 90 31 / .22);
+    }
+  }
 
   /* touch & small screens: a vertical reel, no pinning */
   @media (max-width: 1023px) {

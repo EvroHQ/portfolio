@@ -395,6 +395,34 @@ function initWork(_m: Matter | null, abort: AbortSignal) {
   const bar = document.querySelector<HTMLElement>('[data-work-progress]');
   const desktop = innerWidth >= 1024;
 
+  if (fine && !reduce) {
+    slides.forEach((sl) => {
+      const link = sl.querySelector<HTMLElement>('[data-slide-link]')!;
+      const media = sl.querySelector<HTMLElement>('[data-slide-media]')!;
+      const xTo = gsap.quickTo(media, 'x', { duration: 0.65, ease: 'power3.out' });
+      const yTo = gsap.quickTo(media, 'y', { duration: 0.65, ease: 'power3.out' });
+      const move = (e: PointerEvent) => {
+        if (gallery?.expanding || e.pointerType === 'touch') return;
+        // Use the stationary link as the reference so the image cannot chase its own bounds.
+        const r = link.getBoundingClientRect();
+        const x = gsap.utils.clamp(-1, 1, (e.clientX - r.left) / r.width * 2 - 1);
+        const y = gsap.utils.clamp(-1, 1, (e.clientY - r.top) / media.offsetHeight * 2 - 1);
+        xTo(x * 18);
+        yTo(y * 12 - 6);
+      };
+      const reset = () => { xTo(0); yTo(0); };
+      link.addEventListener('pointerenter', move, { signal: abort });
+      link.addEventListener('pointermove', move, { signal: abort });
+      link.addEventListener('pointerleave', reset, { signal: abort });
+      link.addEventListener('pointercancel', reset, { signal: abort });
+      cleanup.push(() => {
+        xTo.tween.kill();
+        yTo.tween.kill();
+        gsap.set(media, { clearProps: 'transform' });
+      });
+    });
+  }
+
   if (engine && !lowTier && !reduce) {
     gallery = new Gallery(engine, slides.map((s) => s.querySelector<HTMLElement>('[data-slide-media]')!));
     cleanup.push(() => { gallery?.destroy(); gallery = null; });

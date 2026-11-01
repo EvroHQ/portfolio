@@ -18,9 +18,9 @@ const links = [
   <p class="nav__clock label" aria-label="Local time in Belgium"><span>BE</span> <time data-clock>--:--</time></p>
   <nav class="nav__links" aria-label="Primary">
     {links.map((l) => (
-      <a class="nav__link" href={l.href}><span data-scramble-hover>{l.label}</span>{l.count && <sup>{l.count}</sup>}</a>
+      <a class="nav__link" href={l.href} aria-label={l.label}><span class="nav__label" data-label={l.label}><span data-scramble-hover aria-hidden="true">{l.label}</span></span>{l.count && <sup>{l.count}</sup>}</a>
     ))}
-    {site.resumeUrl && <a class="nav__link" href={site.resumeUrl} target="_blank" rel="noreferrer"><span data-scramble-hover>Résumé</span></a>}
+    {site.resumeUrl && <a class="nav__link" href={site.resumeUrl} target="_blank" rel="noreferrer" aria-label="Résumé"><span class="nav__label" data-label="Résumé"><span data-scramble-hover aria-hidden="true">Résumé</span></span></a>}
   </nav>
   <button class="nav__burger" type="button" aria-expanded="false" aria-controls="menu" data-burger>
     <span class="sr-only">Menu</span><i></i><i></i>
@@ -64,6 +64,10 @@ const links = [
   .nav__clock span { color: var(--ember); }
   .nav__links { display: flex; gap: 28px; justify-self: end; }
   .nav__link { font: 450 clamp(14px, calc(var(--u) * 1.05), 18px)/1 var(--sans); letter-spacing: -.005em; transition: color .3s var(--ease-state); }
+  /* The original label sizes the link; scrambled glyphs cannot move its neighbours. */
+  .nav__label { position: relative; display: inline-block; white-space: nowrap; }
+  .nav__label::before { content: attr(data-label); visibility: hidden; }
+  .nav__label [data-scramble-hover] { position: absolute; inset: 0; overflow: clip; }
   /* same hover as the footer socials: ember + the label decodes */
   .nav__link:hover { color: var(--ember); }
   .nav__link sup { font: 450 9px/0 var(--mono); margin-left: 3px; opacity: .6; vertical-align: super; }
