@@ -1,0 +1,42 @@
+---
+const { page = 'home' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const chapters = [
+  { id: 'top', n: '01', label: 'The drop' },
+  { id: 'about', n: '02', label: 'Source' },
+  { id: 'work', n: '03', label: 'The reel' },
+  { id: 'skills', n: '04', label: 'Toolchain' },
+  { id: 'contact', n: '05', label: 'Output' },
+];
+---
+{page === 'home' && (
+  <nav class="rail" aria-label="Chapters" data-rail>
+    <ol>
+      {chapters.map((c) => (
+        <li>
+          <a href={`${base}/#${c.id}`} data-rail-link={c.id}>
+            <span class="rail__label">{c.label}</span>
+            <span class="rail__n">{c.n}</span>
+            <span class="rail__tick" aria-hidden="true"></span>
+          </a>
+        </li>
+      ))}
+    </ol>
+    <div class="rail__progress" aria-hidden="true"><span data-rail-progress></span></div>
+  </nav>
+)}
+
+<style>
+  .rail { position: fixed; right: calc(var(--gutter) - 40px); top: 50%; transform: translate(12px, -50%); z-index: 30; display: flex; gap: 14px; align-items: stretch; opacity: 0; visibility: hidden; transition: opacity .6s var(--ease), transform .8s var(--ease), visibility .6s; }
+  .rail.is-on { opacity: 1; visibility: visible; transform: translate(0, -50%); }
+  .rail ol { display: grid; gap: 4px; }
+  .rail a { display: flex; align-items: center; justify-content: flex-end; gap: 12px; height: 28px; font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); transition: color .3s var(--ease-state); }
+  .rail__label { opacity: 0; transform: translateX(8px); transition: opacity .35s var(--ease), transform .5s var(--ease); white-space: nowrap; }
+  .rail__tick { width: 14px; height: 1px; background: currentColor; transition: width .5s var(--ease), background-color .3s; }
+  .rail a:hover, .rail a.is-active { color: var(--ink); }
+  .rail a:hover .rail__label, .rail a.is-active .rail__label { opacity: 1; transform: none; }
+  .rail a.is-active .rail__tick { width: 34px; background: var(--ember); }
+  .rail__progress { width: 1px; background: var(--line); position: relative; }
+  .rail__progress span { position: absolute; left: 0; top: 0; width: 1px; height: 100%; background: var(--ember); transform-origin: top; transform: scaleY(0); }
+  @media (max-width: 1023px) { .rail { display: none; } }
+</style>

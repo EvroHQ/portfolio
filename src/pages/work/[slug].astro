@@ -1,0 +1,140 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { Picture } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import ProjectCover from '../../components/ProjectCover.astro';
+import Footer from '../../components/Footer.astro';
+import { projects, type Project } from '../../data/projects';
+
+export const getStaticPaths = (() =>
+  projects.map((p, i) => ({ params: { slug: p.slug }, props: { project: p, next: projects[(i + 1) % projects.length] } }))) satisfies GetStaticPaths;
+
+const { project: p, next } = Astro.props as { project: Project; next: Project };
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const ar = typeof p.cover !== 'string' ? p.cover.width / p.cover.height : 1.6;
+---
+<Base title={p.title} description={p.summary} page="case">
+  <article class="case" data-section="case">
+    <header class="case__head wrap">
+      <div class="case__top">
+        <a class="label case__back" href={`${base}/#work`}>← Back to the reel</a>
+        <p class="label"><b>{p.index}</b> — {p.year} — {p.kind}</p>
+      </div>
+      <h1 class="case__title display" data-split>{p.title}</h1>
+      <div class="case__intro">
+        <p class="case__summary reveal">{p.summary}</p>
+        <dl class="case__meta">
+          <div class="reveal"><dt class="label">Stack</dt><dd>{p.stack.join(' · ')}</dd></div>
+          <div class="reveal" style="--d:.06s"><dt class="label">Status</dt><dd>{p.status}</dd></div>
+          <div class="reveal" style="--d:.12s"><dt class="label">Links</dt><dd class="case__links">
+            {p.links.length ? p.links.map((l) => <a href={l.href} target="_blank" rel="noreferrer">{l.label} ↗</a>) : <span class="case__private">Not public yet</span>}
+          </dd></div>
+        </dl>
+      </div>
+    </header>
+
+    <div class="case__cover wrap">
+      <div class="case__frame" data-case-cover style={`--ar:${ar.toFixed(4)}`}>
+        <ProjectCover project={p} sizes="(max-width: 767px) 100vw, 86vw" eager />
+      </div>
+    </div>
+
+    <div class="case__body wrap">
+      <section class="case__block">
+        <h2 class="label"><b>01</b> — The brief</h2>
+        <p class="case__brief" data-scroll-reveal>{p.brief}</p>
+      </section>
+
+      <section class="case__block">
+        <h2 class="label"><b>02</b> — What I built</h2>
+        <ol class="case__list">
+          {p.built.map((b, i) => (
+            <li class="reveal"><span class="label">{String(i + 1).padStart(2, '0')}</span><p>{b}</p></li>
+          ))}
+        </ol>
+      </section>
+
+      {p.gallery && (
+        <section class="case__gallery" aria-label="Themes">
+          {p.gallery.map((g, i) => (
+            <figure class="reveal" style={`--d:${(i % 2) * 0.08}s`}>
+              <Picture src={g.src} alt={g.alt} formats={['avif', 'webp']} widths={[640, 960, 1280]} sizes="(max-width: 767px) 100vw, 46vw" />
+              <figcaption class="label">{g.alt}</figcaption>
+            </figure>
+          ))}
+        </section>
+      )}
+
+      <section class="case__block">
+        <h2 class="label"><b>03</b> — Details that matter</h2>
+        <ul class="case__details">
+          {p.details.map((d) => <li class="reveal">{d}</li>)}
+        </ul>
+      </section>
+    </div>
+
+    <a class="case__next" href={`${base}/work/${next.slug}/`}>
+      <span class="wrap case__next-in">
+        <span class="label">Next record — {next.index}</span>
+        <span class="case__next-title display">{next.title} <i aria-hidden="true">→</i></span>
+      </span>
+    </a>
+    <Footer />
+  </article>
+</Base>
+
+<style>
+  .case b { color: var(--ember); }
+  .case__head { padding-top: clamp(120px, 18vh, 200px); }
+  .case__top { display: flex; justify-content: space-between; gap: 24px; margin-bottom: clamp(32px, 6vh, 72px); }
+  .case__back { color: var(--ink); }
+  .case__back:hover { color: var(--ember); }
+  .case__title { font-size: min(calc(var(--u) * 10.5), 22vh, 210px); max-width: 11ch; }
+  .case__intro { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(32px, calc(var(--u) * 6), 120px); align-items: start; margin-top: clamp(40px, 7vh, 88px); }
+  .case__summary { font: 500 clamp(20px, min(calc(var(--u) * 2.1), 3.6vh), 40px)/1.2 var(--sans); letter-spacing: -.035em; color: var(--ink-2); text-wrap: pretty; }
+  .case__meta { display: grid; gap: 0; border-top: 1px solid var(--line); }
+  .case__meta > div { display: grid; grid-template-columns: 7em 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .case__meta dd { font-size: clamp(15px, calc(var(--u) * 1.1), 20px); line-height: 1.45; }
+  .case__links { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  .case__links a { color: var(--ember); }
+  .case__links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .case__private { color: var(--ink-3); }
+
+  .case__cover { margin-top: clamp(56px, 9vh, 120px); }
+  .case__frame { position: relative; z-index: 5; width: min(100%, calc(82vh * var(--ar))); margin-inline: auto; transform-origin: center; }
+  .case__frame :global(.cover) { border-radius: 8px; }
+
+  .case__body { padding-top: 0; }
+  .case__block { display: grid; grid-template-columns: minmax(160px, 26%) 1fr; gap: 32px; padding-top: clamp(80px, calc(var(--u) * 10), 150px); }
+  .case__block > .label { padding-top: .6em; }
+  .case__brief { font: 500 clamp(26px, calc(var(--u) * 3.3), 68px)/1.12 var(--sans); letter-spacing: -.045em; max-width: 24em; text-wrap: pretty; }
+  .case__list { border-top: 1px solid var(--line); }
+  .case__list li { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+  .case__list p { font-size: clamp(17px, calc(var(--u) * 1.5), 28px); line-height: 1.45; letter-spacing: -.015em; max-width: 40em; }
+  .case__list .label { padding-top: .45em; color: var(--ember); }
+  .case__details { display: grid; gap: 18px; }
+  .case__details li { font-size: clamp(18px, calc(var(--u) * 1.8), 32px); line-height: 1.4; letter-spacing: -.025em; color: var(--ink-2); max-width: 32em; padding-left: 28px; position: relative; }
+  .case__details li::before { content: ''; position: absolute; left: 0; top: .72em; width: 12px; height: 2px; background: var(--ember); }
+  .case__gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding-top: clamp(80px, calc(var(--u) * 10), 150px); }
+  .case__gallery figure :global(img) { width: 100%; height: auto; border-radius: 6px; }
+  .case__gallery figcaption { margin-top: 12px; }
+
+  .case__next { display: block; margin-top: clamp(120px, calc(var(--u) * 14), 220px); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); transition: background-color .5s var(--ease-state); }
+  .case__next:hover { background: var(--ember); color: var(--bg); }
+  .case__next:hover .label { color: var(--bg); }
+  .case__next-in { display: flex; flex-direction: column; gap: 20px; padding-top: clamp(40px, calc(var(--u) * 5), 72px); padding-bottom: clamp(40px, calc(var(--u) * 5), 72px); }
+  .case__next-title { font-size: min(calc(var(--u) * 7.5), 14vh, 136px); }
+  .case__next-title i { display: inline-block; font-style: normal; transition: transform .8s var(--ease); }
+  .case__next:hover .case__next-title i { transform: translateX(24px); }
+
+  @media (max-width: 900px) {
+    .case__block { grid-template-columns: 1fr; gap: 20px; }
+    .case__gallery { grid-template-columns: 1fr; }
+    .case__intro { grid-template-columns: 1fr; }
+    .case__title { font-size: 16vw; }
+  }
+  @media (max-width: 560px) {
+    .case__top { flex-direction: column-reverse; gap: 14px; }
+    .case__meta > div { grid-template-columns: 5.5em 1fr; }
+  }
+</style>

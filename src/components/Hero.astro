@@ -1,0 +1,83 @@
+---
+import { site } from '../data/site';
+---
+<section class="hero" id="top" data-section="hero" aria-label="Introduction">
+  <p class="hero__tl label" data-hero-fade><b>01</b> — The drop</p>
+  <p class="hero__tr" data-hero-fade>
+    <span class="label">Full-stack developer</span>
+    <span class="label"><b>×</b> Music producer</span>
+  </p>
+
+  <h1 class="hero__name" data-hero-name>
+    <span>{site.first}</span>
+    <span>{site.last}</span>
+  </h1>
+
+  <div class="hero__charge">
+    <button class="hero__drop" type="button" data-drop data-hero-fade aria-label="Hold to charge, release to send a shockwave through the name">
+        <span class="hero__pulse" aria-hidden="true"></span>
+        <span class="label"><b>Hold to charge</b><span class="hero__drop-more"> — release to send a shockwave</span></span>
+        <span class="hero__meter" aria-hidden="true"><i></i></span>
+      </button>
+  </div>
+
+  <div class="hero__foot">
+    <p class="hero__lede" data-hero-fade>
+      I build software with an ear for timing — desktop apps, AI pipelines, games and the interfaces on top. Based in Belgium.
+    </p>
+
+    <a class="hero__scroll label" href="#about" data-hero-fade>
+      <span>50.85° N · 4.35° E</span>
+      <span>Scroll <i aria-hidden="true">↓</i></span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .hero { position: relative; height: 100vh; height: 100svh; min-height: 560px; padding: 0 var(--gutter); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .hero__tl { position: absolute; top: 96px; left: var(--gutter); }
+  .hero__tl b { color: var(--ember); }
+  .hero__tr { position: absolute; top: 96px; right: var(--gutter); display: grid; justify-items: end; gap: 6px; }
+
+  /* the real name: visible when WebGL is unavailable, otherwise drawn by the particles */
+  .hero__name {
+    position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%);
+    display: grid; font: 700 min(calc(var(--u) * 9.6), 24vh, 260px)/.88 Syne, var(--sans); letter-spacing: -.04em; text-transform: uppercase;
+    white-space: nowrap; transition: opacity .6s var(--ease);
+  }
+  /* hidden as soon as JS runs; shown again only if WebGL turns out to be unavailable */
+  :global(html.js:not(.no-gl)) .hero__name { opacity: 0; }
+
+  .hero__foot {
+    position: absolute; left: var(--gutter); right: var(--gutter); bottom: max(36px, env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 32px;
+  }
+  .hero__lede { max-width: 30em; font-size: clamp(16px, calc(var(--u) * 1.3), 24px); line-height: 1.5; letter-spacing: -.015em; color: var(--ink-2); }
+  /* sits right under the particle name (position published by the WebGL layout) */
+  .hero__charge { position: absolute; left: 0; right: 0; top: calc(var(--name-bottom, 64%) + 8px); display: flex; justify-content: center; }
+  .hero__drop { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 4px; }
+  .hero__drop { position: relative; }
+  .hero__drop b { color: var(--ink); font-weight: 500; }
+  .hero__meter { position: absolute; left: 24px; right: 4px; bottom: 2px; height: 1px; background: var(--line); overflow: hidden; }
+  .hero__meter i { display: block; height: 100%; background: var(--ember); transform: scaleX(var(--charge, 0)); transform-origin: left; }
+  .hero.is-charging .hero__pulse::after { animation-duration: .6s; }
+  .hero__pulse { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--ember); }
+  .hero__pulse::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 1px solid var(--ember); animation: pulse 2.2s var(--ease) infinite; }
+  @keyframes pulse { from { transform: scale(.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+  .hero__scroll { justify-self: end; display: grid; justify-items: end; gap: 6px; }
+  .hero__scroll i { display: inline-block; font-style: normal; color: var(--ember); animation: nudge 1.8s var(--ease) infinite; }
+  @keyframes nudge { 50% { transform: translateY(4px); } }
+
+  .js [data-intro='pending'] [data-hero-fade] { opacity: 0; transform: translateY(14px); }
+
+  @media (max-width: 767px) {
+    .hero__tl, .hero__tr { top: 78px; }
+    .hero__tr { display: none; }
+    .hero__name { left: var(--gutter); transform: translateY(-50%); font-size: calc(var(--u) * 13.4); }
+    .hero__foot { grid-template-columns: 1fr; gap: 18px; }
+    .hero__charge { justify-content: flex-start; padding-left: var(--name-left, var(--gutter)); }
+    .hero__drop-more { display: none; }
+    .hero__scroll { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero__pulse::after, .hero__scroll i { animation: none; } }
+</style>

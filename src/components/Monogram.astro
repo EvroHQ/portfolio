@@ -1,0 +1,13 @@
+---
+// The CK mark: a disc with Geist Bold "CK" knocked out (see src/data/mark.ts).
+import { MARK_LETTERS, MARK_TRANSFORM } from '../data/mark';
+const { class: className } = Astro.props;
+const id = `ck-${Math.random().toString(36).slice(2, 8)}`;
+---
+<svg class={className} viewBox="0 0 1000 1000" aria-hidden="true" focusable="false">
+  <mask id={id}>
+    <rect width="1000" height="1000" fill="#fff" />
+    <path d={MARK_LETTERS} transform={MARK_TRANSFORM} fill="#000" />
+  </mask>
+  <circle class="mark__disc" cx="500" cy="500" r="500" fill="currentColor" mask={`url(#${id})`} />
+</svg>

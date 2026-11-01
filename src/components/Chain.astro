@@ -1,0 +1,66 @@
+---
+import { chain } from '../data/site';
+const words = chain.map((c) => c.name);
+---
+<section class="chain" id="skills" data-section="chain" aria-labelledby="chain-title">
+  <header class="chain__head wrap">
+    <p class="label"><b>04</b> — <span data-scramble>Toolchain</span></p>
+    <h2 id="chain-title" class="chain__h">Four stages, one person — from interface to infrastructure, kept in tune the whole way.</h2>
+  </header>
+
+  <div class="marquee" aria-hidden="true" data-marquee>
+    {[0, 1].map((row) => (
+      <div class:list={['marquee__row', { 'marquee__row--rev': row === 1 }]} data-marquee-row>
+        {[0, 1].map(() => (
+          <div class="marquee__set">
+            {words.map((w, i) => (
+              <span class:list={['marquee__word', { 'is-outline': (i + row) % 2 === 1 }]}>{w}<i>✶</i></span>
+            ))}
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+
+  <ol class="stack wrap">
+    {chain.map((c, i) => (
+      <li class="stack__col reveal" style={`--d:${i * 0.08}s`}>
+        <p class="label stack__id"><b>{c.id}</b> · CH {i + 1}</p>
+        <h3 class="stack__name">{c.name}</h3>
+        <p class="stack__note">{c.note}</p>
+        <ul class="stack__tools">{c.tools.map((t) => <li>{t}</li>)}</ul>
+      </li>
+    ))}
+  </ol>
+</section>
+
+<style>
+  .chain { position: relative; padding: clamp(120px, calc(var(--u) * 14), 200px) 0 clamp(100px, calc(var(--u) * 12), 180px); overflow: hidden; }
+  .chain__head { display: grid; gap: 28px; margin-bottom: clamp(48px, calc(var(--u) * 6), 96px); padding-right: calc(var(--gutter) + 90px); }
+  .chain__head b { color: var(--ember); }
+  .chain__h { max-width: 22em; font: 500 clamp(26px, calc(var(--u) * 3), 64px)/1.1 var(--sans); letter-spacing: -.04em; color: var(--ink-2); }
+
+  .marquee { display: grid; gap: 0; transform: rotate(-4deg) scale(1.08); margin: 40px 0 clamp(80px, calc(var(--u) * 10), 140px); }
+  .marquee__row { display: flex; width: max-content; will-change: transform; }
+  .marquee__set { display: flex; flex: none; animation: mq 38s linear infinite; }
+  .marquee__row--rev .marquee__set { animation-direction: reverse; animation-duration: 44s; }
+  .marquee__word { display: inline-flex; align-items: center; gap: .3em; padding-right: .3em; font: 600 clamp(72px, calc(var(--u) * 13), 240px)/.95 var(--sans); letter-spacing: -.07em; text-transform: uppercase; white-space: nowrap; }
+  .marquee__word i { font-style: normal; font-size: .4em; color: var(--ember); }
+  /* ghost fill instead of text-stroke: variable-font glyphs overlap, so strokes draw their inner seams */
+  .marquee__word.is-outline { color: rgb(242 236 226 / .1); }
+  @keyframes mq { to { transform: translateX(-100%); } }
+
+  .stack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding-right: calc(var(--gutter) + 90px); }
+  .stack__col { padding: 24px 24px 0 0; border-top: 1px solid var(--line); }
+  .stack__id b { color: var(--ember); }
+  .stack__name { margin-top: 40px; font: 600 clamp(28px, calc(var(--u) * 2.9), 60px)/1 var(--sans); letter-spacing: -.055em; text-transform: uppercase; }
+  .stack__note { margin-top: 10px; color: var(--ink-3); font-size: clamp(15px, calc(var(--u) * 1.1), 20px); }
+  .stack__tools { margin-top: 32px; display: grid; gap: 8px; color: var(--ink-2); font-size: clamp(15px, calc(var(--u) * 1.15), 21px); }
+
+  @media (max-width: 1023px) {
+    .stack { grid-template-columns: 1fr 1fr; row-gap: 48px; padding-right: var(--gutter); }
+    .chain__head { padding-right: var(--gutter); }
+  }
+  @media (max-width: 560px) { .stack { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .marquee__set { animation: none; } }
+</style>

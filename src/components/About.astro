@@ -1,0 +1,51 @@
+---
+const facts = [
+  { k: 'Based', v: 'Belgium' },
+  { k: 'Practice', v: 'Full-stack' },
+  { k: 'Off-screen', v: 'Family & studio' },
+];
+---
+<section class="about" id="about" data-section="about" aria-labelledby="about-title">
+  <div class="about__sticky">
+    <div class="about__col">
+      <p class="label"><b>02</b> — <span data-scramble>Source</span></p>
+      <h2 id="about-title" class="sr-only">About</h2>
+      <p class="about__manifesto" data-scroll-reveal>
+        I'm Chris — husband, father, and a developer who makes <span class="hl">music after dark.</span><br />I started on the front end and kept going down the stack: Python engines, Next.js platforms, Electron apps, games. I treat software like a mix. Every part earns its place, nothing clips, and <span class="hl">timing is everything.</span>
+      </p>
+      <dl class="about__facts">
+        {facts.map((f, i) => (
+          <div class="reveal" style={`--d:${i * 0.07}s`}>
+            <dt class="label">{f.k}</dt>
+            <dd>{f.v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p class="about__caption label" aria-hidden="true">Fig. 02 — A simplified excerpt of the AI Mixing &amp; Mastering engine.</p>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .about { position: relative; height: 230vh; }
+  .about__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; align-items: center; padding: 0 var(--gutter); }
+  .about__col { width: calc(var(--fw) * .44); display: grid; gap: clamp(28px, 4vh, 48px); }
+  .about .label b { color: var(--ember); }
+  .about__manifesto {
+    font: 500 clamp(24px, min(calc(var(--u) * 3.05), 4.7vh), 70px)/1.06 var(--sans);
+    letter-spacing: -.045em;
+    text-wrap: pretty;
+  }
+  .about__manifesto .hl { color: var(--ember); }
+  .about__facts { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 12px 40px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .about__facts dd { margin-top: 10px; font-size: clamp(17px, calc(var(--u) * 1.35), 26px); letter-spacing: -.02em; }
+  .about__caption { max-width: 46ch; }
+
+  @media (max-width: 1023px) {
+    .about { height: auto; }
+    .about__sticky { position: relative; height: auto; min-height: 100svh; align-items: flex-start; padding-top: 120px; padding-bottom: 60vh; }
+    .about__col { width: 100%; }
+    .about__facts { grid-template-columns: 1fr 1fr; }
+  }
+</style>

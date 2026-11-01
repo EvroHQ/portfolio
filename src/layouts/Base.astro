@@ -1,0 +1,109 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import '@fontsource-variable/geist/index.css';
+import '@fontsource-variable/geist-mono/index.css';
+import '@fontsource/syne/700.css';
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Rail from '../components/Rail.astro';
+import Loader from '../components/Loader.astro';
+import { site } from '../data/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  page?: 'home' | 'case' | 'error';
+}
+const { title, description = site.description, page = 'home' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const fullTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.role}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(`${base}/og.png`, Astro.site);
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  jobTitle: site.role,
+  url: site.url,
+  email: `mailto:${site.email}`,
+  address: { '@type': 'PostalAddress', addressCountry: 'BE' },
+  sameAs: site.socials.map((s) => s.href),
+};
+---
+<!doctype html>
+<html lang="en" data-page={page}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      // fail-safe: never leave the hero hidden if the app script doesn't run
+      setTimeout(function () { var w = document.querySelector('[data-intro="pending"]'); if (w) w.dataset.intro = 'done'; }, 2500);
+    </script>
+    <ClientRouter fallback="swap" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="studio-light" aria-hidden="true" transition:persist="light"></div>
+    <canvas id="gl" aria-hidden="true" transition:persist="gl"></canvas>
+    {page === 'home' && <Loader />}
+    <Nav />
+    <Rail page={page} />
+    <main id="main" class="main">
+      <slot />
+    </main>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="cursor" aria-hidden="true" transition:persist="cursor"><span class="cursor__dot"></span><span class="cursor__ring"><span class="cursor__label">View</span></span></div>
+    <script>
+      import '../scripts/app';
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  #gl { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh; z-index: 0; pointer-events: none; display: block; }
+  .main { position: relative; z-index: 1; }
+
+  .cursor { position: fixed; left: 0; top: 0; z-index: 120; pointer-events: none; display: none; }
+  .has-cursor .cursor { display: block; }
+  .cursor__dot { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 1px rgb(12 10 9 / .6); }
+  .cursor__ring {
+    position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+    border: 1px solid rgb(242 236 226 / .55); display: grid; place-items: center;
+    transition: width .45s var(--ease), height .45s var(--ease), margin .45s var(--ease), background-color .3s var(--ease-state), border-color .3s var(--ease-state);
+  }
+  .cursor__label { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: #fff; opacity: 0; transition: opacity .2s; }
+  .cursor.is-link .cursor__ring { width: 56px; height: 56px; margin: -28px 0 0 -28px; border-color: var(--ink); }
+  .cursor.is-view { mix-blend-mode: normal; }
+  /* hold-to-charge in the hero: the ring grows and fills with ember as the charge builds */
+  .cursor.is-charging { mix-blend-mode: normal; }
+  .cursor.is-charging .cursor__ring {
+    --s: calc(36px + var(--charge, 0) * 96px);
+    width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+    border-color: var(--ember); background: rgb(255 90 31 / calc(var(--charge, 0) * .2));
+    transition: background-color .1s, border-color .2s;
+  }
+  .cursor.is-charging .cursor__dot { background: var(--ember); }
+  .cursor.is-view .cursor__ring { width: 96px; height: 96px; margin: -48px 0 0 -48px; background: var(--ember); border-color: var(--ember); }
+  .cursor.is-view .cursor__label { opacity: 1; }
+  .cursor.is-view .cursor__dot { opacity: 0; }
+  @media (hover: hover) and (pointer: fine) {
+    .has-cursor, .has-cursor a, .has-cursor button { cursor: none; }
+  }
+</style>

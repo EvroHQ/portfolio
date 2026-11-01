@@ -1,0 +1,14 @@
+---
+import { site } from '../data/site';
+const year = new Date().getFullYear();
+---
+<footer class="foot wrap">
+  <p class="label">© {year} {site.name}</p>
+  {site.resumeUrl && <a class="label" href={site.resumeUrl} target="_blank" rel="noreferrer">Résumé ↗</a>}
+  <a class="label foot__top" href="#top" data-to-top>Back to top ↑</a>
+</footer>
+
+<style>
+  .foot { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-top: 40px; padding-bottom: max(32px, env(safe-area-inset-bottom)); margin-top: 72px; }
+  .foot a:hover { color: var(--ink); }
+</style>

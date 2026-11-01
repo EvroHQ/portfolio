@@ -1,0 +1,21 @@
+<div class="loader" data-loader aria-hidden="true">
+  <div class="loader__bar"><span data-loader-bar></span></div>
+  <p class="loader__tl label">Calibrating matter</p>
+  <p class="loader__bl label">Christophe Kirkoussis — Portfolio Vol. 02</p>
+  <p class="loader__count"><span data-loader-count>000</span></p>
+</div>
+
+<style>
+  .loader { position: fixed; inset: 0; z-index: 100; pointer-events: none; padding: 22px var(--gutter); transition: opacity .8s var(--ease), visibility .8s; }
+  .loader.is-done { opacity: 0; visibility: hidden; }
+  .no-js .loader, html:not(.js) .loader { display: none; }
+  .loader__bar { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--line); }
+  .loader__bar span { display: block; height: 100%; background: var(--ember); transform: scaleX(0); transform-origin: left; }
+  .loader__tl { position: absolute; top: 96px; left: var(--gutter); color: var(--ember); }
+  .loader__bl { position: absolute; bottom: 40px; left: var(--gutter); }
+  .loader__count {
+    position: absolute; right: var(--gutter); bottom: 18px;
+    font: 600 clamp(80px, calc(var(--u) * 16), 260px)/.8 var(--sans); letter-spacing: -.07em;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+</style>
