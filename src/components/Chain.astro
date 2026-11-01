@@ -14,7 +14,7 @@ const words = chain.map((c) => c.name);
         {[0, 1].map(() => (
           <div class="marquee__set">
             {words.map((w, i) => (
-              <span class:list={['marquee__word', { 'is-outline': (i + row) % 2 === 1 }]}>{w}<i>✶</i></span>
+              <span class:list={['marquee__word', { 'is-outline': (i + row) % 2 === 1 }]}><span class="marquee__text">{w}</span><i>✶</i></span>
             ))}
           </div>
         ))}
@@ -42,13 +42,13 @@ const words = chain.map((c) => c.name);
 
   .marquee { display: grid; gap: 0; transform: rotate(-4deg) scale(1.08); margin: 40px 0 clamp(80px, calc(var(--u) * 10), 140px); }
   .marquee__row { display: flex; width: max-content; will-change: transform; }
-  .marquee__set { display: flex; flex: none; animation: mq 38s linear infinite; }
-  .marquee__row--rev .marquee__set { animation-direction: reverse; animation-duration: 44s; }
-  .marquee__word { display: inline-flex; align-items: center; gap: .3em; padding-right: .3em; font: 600 clamp(72px, calc(var(--u) * 13), 240px)/.95 var(--sans); letter-spacing: -.07em; text-transform: uppercase; white-space: nowrap; }
+  /* the drift is driven from app.ts so scrolling can speed it up */
+  .marquee__set { display: flex; flex: none; }
+  .marquee__word { display: inline-flex; align-items: center; gap: .3em; padding-right: .3em; font: 600 clamp(72px, calc(var(--u) * 13), 240px)/.95 var(--sans); letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; }
   .marquee__word i { font-style: normal; font-size: .4em; color: var(--ember); }
   /* ghost fill instead of text-stroke: variable-font glyphs overlap, so strokes draw their inner seams */
-  .marquee__word.is-outline { color: rgb(242 236 226 / .1); }
-  @keyframes mq { to { transform: translateX(-100%); } }
+  /* the fade is applied to the whole word as one layer: a translucent colour would double where tight-tracked letters overlap */
+  .marquee__word.is-outline .marquee__text { opacity: .1; }
 
   .stack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding-right: calc(var(--gutter) + 90px); }
   .stack__col { padding: 24px 24px 0 0; border-top: 1px solid var(--line); }
@@ -61,6 +61,4 @@ const words = chain.map((c) => c.name);
     .stack { grid-template-columns: 1fr 1fr; row-gap: 48px; padding-right: var(--gutter); }
     .chain__head { padding-right: var(--gutter); }
   }
-  @media (max-width: 560px) { .stack { grid-template-columns: 1fr; } }
-  @media (prefers-reduced-motion: reduce) { .marquee__set { animation: none; } }
-</style>
+  @media (max-width: 560px) { .stack { grid-template-columns: 1fr; } }</style>

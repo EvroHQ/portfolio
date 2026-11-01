@@ -41,7 +41,7 @@ const CODE = [
 ];
 
 const vert = /* glsl */ `
-uniform float uTime, uExplode, uSize, uDpr, uCamZ, uAlpha, uHeatBoost, uAssemble;
+uniform float uTime, uExplode, uSize, uDpr, uCamZ, uAlpha, uHeatBoost, uAssemble, uNameGrain, uSpread, uNameW;
 uniform vec4 uW;
 uniform vec2 uEdC, uEdSize;
 uniform float uEdTop, uEdLineH, uEdContentH, uEdVisH, uEdScroll, uEdTilt, uEdCaret;
@@ -60,9 +60,25 @@ attribute vec4 aR;
 attribute float aL; // which letter of the name this grain belongs to (-1: none)
 attribute vec4 aG;  // this grain's spot in scramble glyphs 1 and 2 (name canvas coords)
 attribute vec2 aG3; // ... and in scramble glyph 3
-attribute vec2 aE; // editor: x = kind (0 chrome, 0.5 gutter, 1 token, 2 keyword), y = 1 if it scrolls with the code
+attribute vec2 aE; // editor: x = kind (0 chrome, 0.5 gutter, 1 token), y = 1 if it scrolls with the code
+attribute vec3 aK; // editor: this grain's Evro Dark syntax colour
 varying float vHeat;
 varying float vAlpha;
+varying vec3 vEd;
+varying float vEdW;
+varying vec3 vMono;
+varying float vMonoW;
+varying float vDecode;
+varying float vGlint;
+
+// MONOGRAM: the disc turns to face the cursor like a coin tilted in the hand (x: around the vertical axis, y: the horizontal one)
+uniform vec2 uMonoTilt;
+vec3 monoTilt(vec3 p){
+  float cy = cos(uMonoTilt.x), sy = sin(uMonoTilt.x);
+  p = vec3(p.x * cy + p.z * sy, p.y, -p.x * sy + p.z * cy);
+  float cx = cos(uMonoTilt.y), sx = sin(uMonoTilt.y);
+  return vec3(p.x, p.y * cx - p.z * sx, p.y * sx + p.z * cx);
+}
 
 // CODE EDITOR: a window in perspective whose code (minimap-style token bars) scrolls; the hovered line lights up.
 // b.xy = window-local px from the top-left (code grains: y is measured inside the scrolling content)
@@ -77,12 +93,12 @@ vec3 editor(vec3 b){
   if (aE.y > 0.5) {
     float yy = mod(p.y + uEdScroll, uEdContentH);
     edVis = step(yy, uEdVisH) * smoothstep(0.0, uEdLineH * 0.8, yy) * smoothstep(uEdVisH, uEdVisH - uEdLineH * 0.8, yy);
-    float row = floor(yy / uEdLineH);
+    float row = floor(p.y / uEdLineH); // the line of code itself, not the screen band it scrolls through
     caret = 1.0 - step(0.5, abs(row - uEdCaret));
     p.y = uEdTop + yy;
   }
-  edGlow = (aE.x > 1.5 ? 0.75 : 0.0) + caret * (aE.x > 0.75 ? 0.6 : 0.3);
-  vec3 q = vec3(p.x - uEdSize.x * 0.5, uEdSize.y * 0.5 - p.y, caret * 22.0);
+  edGlow = caret * (aE.x > 0.75 ? 1.0 : 0.5);
+  vec3 q = vec3(p.x - uEdSize.x * 0.5, uEdSize.y * 0.5 - p.y, 0.0);
   float c = cos(uEdTilt), s = sin(uEdTilt);
   q = vec3(q.x * c + q.z * s, q.y, -q.x * s + q.z * c);   // turn toward the text
   float cx = cos(0.12), sx = sin(0.12);
@@ -102,7 +118,7 @@ void main(){
     else if (scr > 1.5) nameP = vec3(aG.zw, aA.z);
     else if (scr > 0.5) nameP = vec3(aG.xy, aA.z);
   }
-  vec3 pos = (nameP + vec3(uNameOffset, 0.0)) * uW.x + editor(aB) * uW.y + dust * uW.z + (aD + vec3(uMonoOffset, 0.0)) * uW.w;
+  vec3 pos = (nameP + vec3(uNameOffset, 0.0)) * uW.x + editor(aB) * uW.y + dust * uW.z + (monoTilt(aD) + vec3(uMonoOffset, 0.0)) * uW.w;
 
   // explosion: each grain flies along its own turbulent path, peaking mid-transition
   float e = uExplode * (0.55 + aR.w * 0.9);
@@ -111,12 +127,18 @@ void main(){
     cos(aR.y * 11.0 + uTime * 0.45) + sin(pos.x * 0.003 - uTime * 0.6),
     sin(aR.z * 9.0 + uTime * 0.4) * 2.0
   );
-  pos += swirl * e * (260.0 + aR.w * 520.0);
+  pos += swirl * e * (260.0 + aR.w * 520.0) * uSpread;
 
   // assembly (loader): grains arrive from far away
   pos = mix(aC * vec3(1.6, 1.6, 1.0) + swirl * 300.0, pos, uAssemble);
 
-  float heat = uHeatBoost * (0.3 + 0.7 * aR.z) + edGlow * uW.y;
+  float heat = uHeatBoost * (0.3 + 0.7 * aR.z);
+  // the hovered line takes Evro Dark's mint cursor colour
+  vEd = mix(aK, vec3(0.463, 0.925, 0.718), edGlow * 0.9);
+  vEdW = uW.y;
+  // the name and the mark burn in the site's ember: copper to bright ember grains, with a few ivory sparks
+  vMono = aR.y > 0.93 ? vec3(0.95, 0.925, 0.886) : mix(vec3(0.45, 0.16, 0.07), vec3(1.0, 0.353, 0.122), aR.z);
+  vMonoW = uW.w + uW.x;
   vec3 disp = vec3(0.0);
   for (int i = 0; i < ${RIPPLES}; i++) {
     vec4 rp = uRip[i];
@@ -132,39 +154,75 @@ void main(){
     disp.z += amp * 160.0 * (aR.x - 0.35);
     heat += amp * 1.4;
   }
-  heat += step(0.5, scr) * 0.85 * uW.x; // decoding glyphs burn ember
-  // elsewhere (dust, monogram) the cursor keeps a soft field
-  vec2 dp = pos.xy - uPointer;
-  float dl = length(dp) + 0.001;
-  float f = smoothstep(200.0, 0.0, dl) * uPointerOn * (1.0 - 0.75 * uW.y) * (1.0 - uW.x);
-  disp.xy += dp / dl * f * 34.0;
-  disp.z += f * 60.0 * aR.y;
-  heat += f * 0.7;
+  vDecode = step(0.5, scr) * uW.x; // decoding glyphs flash ivory against the ember name
+  // idle glint: every 6s a soft diagonal band of light crosses the name in 1.8s; grains never move
+  float gp = mod(uTime, 6.0) / 1.8;
+  float gx = mix(-0.75, 0.75, gp) * uNameW;
+  vGlint = gp < 1.0 ? exp(-pow((aA.x + aA.y * 0.45 - gx) / (uNameW * 0.06), 2.0)) * uW.x : 0.0;
   pos += disp;
 
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
   float persp = uCamZ / max(1.0, -mv.z);
-  float grain = mix(0.55 + aR.y * 0.9, 0.62 + aR.y * 0.2, uW.y) * (1.0 + 0.25 * uW.x); // even, finer grains for readable code
+  float grain = mix(0.55 + aR.y * 0.9, 0.62 + aR.y * 0.2, uW.y) * mix(1.0, uNameGrain, uW.x); // even, finer grains for readable code
   gl_PointSize = uSize * uDpr * persp * grain * (1.0 + min(heat, 1.5) * 0.5 * (1.0 - 0.6 * uW.y));
   vHeat = heat;
   float depth = clamp(persp, 0.25, 1.2);
-  vAlpha = uAlpha * mix(0.45 + 0.55 * aR.z, 0.75 + 0.25 * aR.z, uW.x) * (1.0 - min(heat, 2.0) * 0.12) * mix(1.0, 0.55 * depth, uW.z) * mix(1.0, edVis * (aE.x < 0.75 ? 0.55 : 1.0), uW.y);
+  vAlpha = uAlpha * mix(0.45 + 0.55 * aR.z, 0.75 + 0.25 * aR.z, uW.x) * (1.0 - min(heat, 2.0) * 0.12) * mix(1.0, 0.55 * depth, uW.z) * mix(1.0, edVis * (aE.x < 0.25 ? 0.55 : 1.0), uW.y);
+  vAlpha *= mix(1.0, step(aR.w, 0.4), uW.w); // the mark keeps only 40% of the grains: airier
+  // the name's grains twinkle faintly, each at its own pace, and brighten as the glint passes
+  vAlpha *= mix(1.0, 0.86 + 0.14 * sin(uTime * (1.2 + aR.x * 1.8) + aR.y * 40.0), uW.x) * (1.0 + vGlint * 0.45);
 }`;
 
 const frag = /* glsl */ `
 uniform vec3 uIvory, uEmber, uAsh;
 varying float vHeat;
 varying float vAlpha;
+varying vec3 vEd;
+varying float vEdW;
+varying vec3 vMono;
+varying float vMonoW;
+varying float vDecode;
+varying float vGlint;
 void main(){
   float d = length(gl_PointCoord - 0.5);
   float a = smoothstep(0.5, 0.12, d) * vAlpha;
   if (a < 0.01) discard;
   float h = clamp(vHeat, 0.0, 1.0);
-  vec3 col = mix(uIvory, uEmber, smoothstep(0.05, 0.75, h));
+  vec3 col = mix(mix(mix(mix(uIvory, vEd, vEdW), vMono, vMonoW), uIvory, max(vDecode, vGlint * 0.75)), uEmber, smoothstep(0.05, 0.75, h));
   col = mix(col, vec3(1.0, 0.93, 0.84), smoothstep(0.9, 1.7, vHeat) * 0.85); // white-hot core
   gl_FragColor = vec4(col, a);
 }`;
+
+/** Evro Dark (github.com/EvroHQ/EvroDark), the VS Code theme the editor is coloured with */
+const EVRO = ['#ABB2BF', '#636D83', '#9D88D0', '#DBD594', '#76ECB7', '#F5B187', '#E06C75', '#959AA5'];
+const [FG, GUTTER, KEYWORD, FUNC, STRING, CONST, PROP, VAR] = [0, 1, 2, 3, 4, 5, 6, 7];
+const EVRO_RGB = EVRO.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255));
+const KEY = /^(import|export|from|async|function|const|await|return)$/;
+
+/** Split a line of the snippet into [text, column, colour] the way Evro Dark colours JavaScript. */
+function tokens(line: string, consts: Set<string>) {
+  const out: [string, number, number][] = [];
+  const isImport = /^import\b/.test(line);
+  for (const m of line.matchAll(/'[^']*'|-?\d+|[A-Za-z_$][\w$]*|[()[\]]|[^\sA-Za-z_$'()[\]\d]+/g)) {
+    const t = m[0], i = m.index!;
+    const before = line.slice(0, i).trimEnd(), after = line.slice(i + t.length).trimStart();
+    let c = FG;
+    if (t[0] === "'" || /^-?\d/.test(t)) c = STRING;
+    else if (/^[()[\]]$/.test(t)) c = KEYWORD;
+    else if (/^[A-Za-z_$]/.test(t)) {
+      if (KEY.test(t)) c = KEYWORD;
+      else if (after.startsWith('(')) c = FUNC;
+      else if (before.endsWith('.')) c = PROP;
+      else if (after.startsWith(':')) c = FG;
+      else if (isImport) c = FUNC;
+      else if (/\bconst$/.test(before)) { consts.add(t); c = CONST; }
+      else c = consts.has(t) ? CONST : VAR;
+    }
+    out.push([t, i, c]);
+  }
+  return out;
+}
 
 /** Sample filled pixels of a 2D drawing into points (centred, y up, in CSS px). */
 function sample(draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void, w: number, h: number, step: number) {
@@ -221,6 +279,7 @@ export class Matter {
     this.geometry.setAttribute('aA', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
     this.geometry.setAttribute('aB', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
     this.geometry.setAttribute('aE', new THREE.BufferAttribute(new Float32Array(N * 2), 2));
+    this.geometry.setAttribute('aK', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
     this.geometry.setAttribute('aL', new THREE.BufferAttribute(new Float32Array(N).fill(-1), 1));
     this.geometry.setAttribute('aG', new THREE.BufferAttribute(new Float32Array(N * 4), 4));
     this.geometry.setAttribute('aG3', new THREE.BufferAttribute(new Float32Array(N * 2), 2));
@@ -236,14 +295,14 @@ export class Matter {
       depthTest: false,
       uniforms: {
         uTime: { value: 0 }, uExplode: { value: 0 }, uSize: { value: lowTier ? 2.6 : 2.1 }, uDpr: { value: 1 }, uCamZ: { value: 1000 },
-        uAlpha: { value: 1 }, uHeatBoost: { value: 0 }, uAssemble: { value: reduceMotion ? 1 : 0 },
+        uAlpha: { value: 1 }, uHeatBoost: { value: 0 }, uAssemble: { value: reduceMotion ? 1 : 0 }, uNameGrain: { value: 1.25 }, uSpread: { value: 1 }, uNameW: { value: 1000 },
         uW: { value: new THREE.Vector4(...STATES.name) },
         uEdC: { value: new THREE.Vector2() }, uEdSize: { value: new THREE.Vector2(600, 480) }, uEdTop: { value: 60 }, uEdLineH: { value: 18 },
         uEdContentH: { value: 500 }, uEdVisH: { value: 400 }, uEdScroll: { value: 0 }, uEdTilt: { value: -0.35 }, uEdCaret: { value: -10 },
         uPointer: { value: new THREE.Vector2(9999, 9999) }, uPointerOn: { value: 0 }, uPointerVel: { value: new THREE.Vector2() },
         uScr: { value: new Array(20).fill(0) },
 
-        uNameOffset: { value: new THREE.Vector2() }, uMonoOffset: { value: new THREE.Vector2() },
+        uNameOffset: { value: new THREE.Vector2() }, uMonoOffset: { value: new THREE.Vector2() }, uMonoTilt: { value: new THREE.Vector2() },
         uRip: { value: this.rip },
         uIvory: { value: new THREE.Color('#f2ece2') }, uEmber: { value: new THREE.Color('#ff5a1f') }, uAsh: { value: new THREE.Color('#8a8178') },
       },
@@ -278,7 +337,9 @@ export class Matter {
     // @ts-ignore letterSpacing is supported in modern canvas
     probe.letterSpacing = '-4px';
     const widest = Math.max(...this.nameLines.map((l) => probe.measureText(l).width));
-    let size = Math.min((fw * (small ? 0.84 : 0.86)) / (widest / 100), vh * (small ? 0.13 : 0.28), 300);
+    // on phones the name runs gutter to gutter (matches --gutter in CSS)
+    const gutter = Math.min(64, Math.max(20, vw * 0.04));
+    let size = Math.min((small ? vw - gutter * 2 : fw * 0.86) / (widest / 100), vh * (small ? 0.13 : 0.28), 300);
     const lh = size * 0.84;
     const nameW = (widest / 100) * size + 40;
     const nameH = lh * 2 + size * 0.3;
@@ -292,9 +353,14 @@ export class Matter {
       ctx.fillText(this.nameLines[0], 20, size * 0.88);
       ctx.fillText(this.nameLines[1], 20, size * 0.88 + lh);
     }, nameW, nameH, step);
-    fill(this.attr('aA'), name, N, step * 0.9, rnd);
+    fill(this.attr('aA'), name, N, step * (small ? 0.5 : 0.9), rnd);
+    // the small-screen name is thin-stroked: finer grains keep the letters crisp instead of pebbly
+    this.material.uniforms.uNameGrain.value = small ? (lowTier ? 0.62 : 0.75) : 1.25;
+    // the transition burst is sized for desktop: on a phone it would flood the whole screen
+    this.material.uniforms.uSpread.value = small ? Math.max(0.3, vw / 1400) : 1;
+    this.material.uniforms.uNameW.value = nameW;
     const nameOffset = this.material.uniforms.uNameOffset.value as THREE.Vector2;
-    nameOffset.set(small ? -vw / 2 + nameW / 2 + vw * 0.035 : 0, small ? vh * 0.06 : vh * 0.03);
+    nameOffset.set(small ? -vw / 2 + nameW / 2 + gutter - 20 : 0, small ? vh * 0.06 : vh * 0.03);
     // LETTER MAP — draw each line's prefixes ("C", "CH", "CHR"…) with exactly the settings of the name:
     // the pixels that appear at step i belong to letter i. Kerning, tracking and overhangs match by construction.
     const cw2 = Math.ceil(nameW), ch2 = Math.ceil(nameH);
@@ -415,7 +481,7 @@ export class Matter {
     u.uCamZ.value = this.engine.camera.position.z;
     u.uDpr.value = this.engine.dpr;
 
-    for (const k of ['aA', 'aB', 'aC', 'aD', 'aE', 'aL', 'aG', 'aG3']) (this.geometry.getAttribute(k) as THREE.BufferAttribute).needsUpdate = true;
+    for (const k of ['aA', 'aB', 'aC', 'aD', 'aE', 'aK', 'aL', 'aG', 'aG3']) (this.geometry.getAttribute(k) as THREE.BufferAttribute).needsUpdate = true;
   }
 
   /** Lay out an editor window of width W: the frame from rects, the code from real Geist Mono glyphs. */
@@ -436,29 +502,30 @@ export class Matter {
       [0, 0, W, t], [0, H - t, W, t], [0, 0, t, H], [W - t, 0, t, H],
       [0, top, W, 1.2], [gutter - fontPx * 0.5, top, 1, H - top],
     ];
-    const dots = [0, 1, 2].map((i) => [W * 0.035 + i * W * 0.03 + top * 0.12, top * 0.5, top * 0.12, i === 0 ? 2 : 0.5]);
+    // window buttons in the theme's red, yellow and green
+    const dots = [PROP, FUNC, STRING].map((col, i) => [W * 0.035 + i * W * 0.03 + top * 0.12, top * 0.5, top * 0.12, col]);
 
-    // code as glyphs: keywords drawn red, other code green, line numbers blue → kind read back per pixel
-    const KEY = /^(import|export|from|async|function|const|await|return)$/;
-    const pts: number[] = []; // x, y, kind
+    // code as glyphs: each token is drawn with its palette index in the red channel, read back per pixel
+    const pts: number[] = []; // x, y, palette index
     {
       const c = document.createElement('canvas');
       c.width = Math.ceil(W);
       c.height = Math.ceil(contentH);
       const ctx = c.getContext('2d', { willReadFrequently: true })!;
-      ctx.font = `500 ${fontPx}px "Geist Mono Variable", "Geist Mono", ui-monospace, monospace`;
       ctx.textBaseline = 'middle';
+      const paint = (col: number) => `rgb(${col * 24 + 12},0,0)`;
+      const consts = new Set<string>();
       CODE.forEach((line, row) => {
         const y = row * lineH + lineH / 2;
-        ctx.fillStyle = '#00f';
+        ctx.fillStyle = paint(GUTTER);
         ctx.textAlign = 'right';
         ctx.font = `500 ${fontPx * 0.78}px "Geist Mono Variable", "Geist Mono", ui-monospace, monospace`;
         ctx.fillText(String(row + 1), gutter - fontPx, y);
         ctx.font = `500 ${fontPx}px "Geist Mono Variable", "Geist Mono", ui-monospace, monospace`;
         ctx.textAlign = 'left';
-        for (const m of line.matchAll(/[A-Za-z_$][\w$]*|[^A-Za-z_$]+/g)) {
-          ctx.fillStyle = KEY.test(m[0]) ? '#f00' : '#0f0';
-          ctx.fillText(m[0], gutter + m.index! * cw, y);
+        for (const [text, col, colour] of tokens(line, consts)) {
+          ctx.fillStyle = paint(colour);
+          ctx.fillText(text, gutter + col * cw, y);
         }
       });
       const d = ctx.getImageData(0, 0, c.width, c.height).data;
@@ -467,13 +534,13 @@ export class Matter {
         for (let x = 0; x < c.width; x += step) {
           const k = (Math.floor(y) * c.width + Math.floor(x)) * 4;
           if (d[k + 3] < 110) continue;
-          const kind = d[k] > d[k + 1] && d[k] > d[k + 2] ? 2 : d[k + 2] > d[k + 1] ? 0.5 : 1;
-          pts.push(x, y, kind);
+          pts.push(x, y, Math.min(EVRO.length - 1, Math.max(0, Math.round((d[k] - 12) / 24))));
         }
       }
     }
 
-    const aB = this.attr('aB'), aE = this.attr('aE');
+    const aB = this.attr('aB'), aE = this.attr('aE'), aK = this.attr('aK');
+    const tint = (i: number, col: number) => { aK.set(EVRO_RGB[col], i * 3); };
     const chromeShare = Math.round(N * 0.1);
     const perim = rects.reduce((a, r) => a + r[2] * r[3], 0);
     let i = 0;
@@ -483,13 +550,15 @@ export class Matter {
       for (let j = 0; j < n && i < N; j++, i++) {
         aB[i * 3] = r[0] + rnd() * r[2]; aB[i * 3 + 1] = r[1] + rnd() * r[3]; aB[i * 3 + 2] = 0;
         aE[i * 2] = 0; aE[i * 2 + 1] = 0;
+        tint(i, FG);
       }
     }
-    for (const [cx, cy, rr, kind] of dots) {
+    for (const [cx, cy, rr, col] of dots) {
       for (let j = 0; j < chromeShare * 0.04 && i < N; j++, i++) {
         const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * rr;
         aB[i * 3] = cx + Math.cos(a) * r; aB[i * 3 + 1] = cy + Math.sin(a) * r; aB[i * 3 + 2] = 0;
-        aE[i * 2] = kind; aE[i * 2 + 1] = 0;
+        aE[i * 2] = 1; aE[i * 2 + 1] = 0;
+        tint(i, col);
       }
     }
     // glyphs: every lit pixel gets a grain before any gets two, so letters stay crisp
@@ -501,8 +570,9 @@ export class Matter {
       aB[i * 3] = pts[q] + (rnd() - 0.5) * 0.6;
       aB[i * 3 + 1] = pts[q + 1] + (rnd() - 0.5) * 0.6;
       aB[i * 3 + 2] = 0;
-      aE[i * 2] = pts[q + 2];
+      aE[i * 2] = pts[q + 2] === GUTTER ? 0.5 : 1;
       aE[i * 2 + 1] = 1;
+      tint(i, pts[q + 2]);
     }
 
     const u = this.material.uniforms;
@@ -566,6 +636,12 @@ export class Matter {
     // velocity of the smoothed cursor, itself smoothed so the wake never jerks
     const vel = u.uPointerVel.value as THREE.Vector2;
     if (dt > 0) vel.lerp(new THREE.Vector2((p.x - px) / dt, (p.y - py) / dt), 1 - Math.pow(0.02, dt));
+    // monogram tilt: it turns toward the cursor (up to ~25°), settles back flat when the cursor leaves
+    const mc = u.uMonoOffset.value as THREE.Vector2, tilt = u.uMonoTilt.value as THREE.Vector2;
+    const tx = on ? THREE.MathUtils.clamp((e.pointer.x - mc.x) / (e.w * 0.5), -1, 1) * 0.45 : 0;
+    const ty = on ? -THREE.MathUtils.clamp((e.pointer.y - mc.y) / (e.h * 0.5), -1, 1) * 0.35 : 0;
+    const kt = 1 - Math.pow(0.03, dt);
+    tilt.set(tilt.x + (tx - tilt.x) * kt, tilt.y + (ty - tilt.y) * kt);
     // letter decode: entering a letter makes it flicker through glyphs (~70ms each) for 0.55s
     const scr = u.uScr.value as number[];
     for (let i = 0; i < this.letters.length && i < scr.length; i++) {
@@ -586,6 +662,8 @@ export class Matter {
     // caret: the visible code row under the cursor (approximate, ignores the slight tilt)
     const c = u.uEdC.value as THREE.Vector2, size = u.uEdSize.value as THREE.Vector2;
     const lx = e.pointer.x - c.x + size.x / 2, ly = c.y + size.y / 2 - u.uEdTop.value - e.pointer.y;
-    u.uEdCaret.value = on && this.w[1] > 0.5 && lx > 0 && lx < size.x && ly > 0 && ly < u.uEdVisH.value ? Math.floor(ly / u.uEdLineH.value) : -10;
+    // the code line currently scrolled under the cursor (the shader scrolls content y by uEdScroll, wrapping at uEdContentH)
+    const H = u.uEdContentH.value, contentY = (((ly - u.uEdScroll.value) % H) + H) % H;
+    u.uEdCaret.value = on && this.w[1] > 0.5 && lx > 0 && lx < size.x && ly > 0 && ly < u.uEdVisH.value ? Math.floor(contentY / u.uEdLineH.value) : -10;
   }
 }

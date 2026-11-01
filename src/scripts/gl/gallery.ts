@@ -119,14 +119,14 @@ export class Gallery {
     const slide: Slide = { el, mesh, full: 0 };
     this.slides.push(slide);
     el.closest('[data-slide]')?.classList.add('is-gl');
-    // reveal when it first enters the viewport
+    // reveal once a good part of it is on screen: the wipe rises from the bottom edge, which must be visible
     const io = new IntersectionObserver(([en]) => {
-      if (!en.isIntersecting) return;
+      if (!en.isIntersecting || en.intersectionRatio < 0.4) return;
       io.disconnect();
       const u = mat.uniforms.uReveal; const t0 = performance.now();
       const step = () => { const p = Math.min(1, (performance.now() - t0) / 1300); u.value = 1 - Math.pow(1 - p, 3); if (p < 1) requestAnimationFrame(step); };
       requestAnimationFrame(step);
-    }, { threshold: 0.05 });
+    }, { threshold: 0.4 });
     io.observe(el);
     this.offs.push(() => io.disconnect());
   }

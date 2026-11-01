@@ -20,15 +20,17 @@ html, body { background: #0c0a09; color: #f2ece2; }
   /* the composition frame: on ultrawide screens everything lives in a centred frame ≤ 1.9× the height */
   --fw: min(100vw, 190vh);
   --u: calc(var(--fw) / 100);
-  --gutter: max(clamp(20px, 4vw, 64px), calc((100vw - var(--fw)) / 2 + 56px));
+  /* the frame's offset (0 unless ultrawide) plus a margin that tightens to 20px on phones */
+  --gutter: calc((100vw - var(--fw)) / 2 + clamp(20px, 4vw, 64px));
   --max: 1680px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; overflow-x: clip; }
+/* the scrollbar's space stays reserved, so locking the scroll (menu open) never shifts the layout */
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; scrollbar-gutter: stable; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
-.lenis.lenis-stopped { overflow: clip; }
+.lenis.lenis-stopped, html.is-locked { overflow: hidden; }
 body {
   margin: 0;
   font-family: var(--sans);
@@ -127,8 +129,22 @@ html.gl-on .studio-light { display: none; }
   background: radial-gradient(120% 80% at 70% 110%, rgb(255 90 31 / .10), transparent 60%), radial-gradient(80% 60% at 10% -10%, rgb(242 236 226 / .05), transparent 60%); }
 
 /* big display type */
-.display { font: 600 clamp(56px, calc(var(--u) * 9.6), 200px)/.86 var(--sans); letter-spacing: -.065em; text-transform: uppercase; }
+.display { font: 600 clamp(56px, calc(var(--u) * 9.6), 200px)/.86 var(--sans); letter-spacing: -.035em; text-transform: uppercase; }
 .display .accent { color: var(--ember); }
+
+/* letter roll ([data-roll], wave timing from app.ts): each line is a window clipped top and bottom only,
+   so no glyph is ever cut on its sides; on hover every letter rolls up out of it while its twin
+   in the other colour rolls in from below */
+.roll { display: block; color: var(--ink); clip-path: inset(0 -1em); }
+.roll--inline { display: inline-block; vertical-align: top; }
+.roll--accent { color: var(--ember); }
+.roll__c { position: relative; display: inline-block; vertical-align: top; }
+.roll__c > span { display: block; transition: transform .7s cubic-bezier(.76, 0, .24, 1) var(--d, 0s); }
+.roll__c > span + span { position: absolute; left: 0; top: 100%; color: var(--ember); }
+.roll--accent .roll__c > span + span { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-roll]:hover .roll__c > span { transform: translateY(-100%); }
+}
 
 /* scramble placeholder width stability */
 [data-scramble] { font-variant-numeric: tabular-nums; }

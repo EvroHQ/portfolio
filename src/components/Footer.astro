@@ -1,14 +1,21 @@
 ---
 import { site } from '../data/site';
 const year = new Date().getFullYear();
+// spaces become non-breaking: a lone space in its own letter box would collapse
+const letters = [...site.name].map((c) => (c === ' ' ? ' ' : c));
 ---
 <footer class="foot wrap">
-  <p class="label">© {year} {site.name}</p>
+  <p class="label">© {year} <span class="foot__name" aria-label={site.name} data-roll data-roll-step="0.012"><span class="roll roll--inline" aria-hidden="true">{letters.map((c) => <span class="roll__c" data-roll-c><span>{c}</span><span>{c}</span></span>)}</span></span></p>
   {site.resumeUrl && <a class="label" href={site.resumeUrl} target="_blank" rel="noreferrer">Résumé ↗</a>}
-  <a class="label foot__top" href="#top" data-to-top>Back to top ↑</a>
+  <a class="label foot__top" href="#top" data-to-top>Back to top <span class="foot__arrow" data-top-arrow aria-hidden="true">↑</span></a>
 </footer>
 
 <style>
   .foot { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-top: 40px; padding-bottom: max(32px, env(safe-area-inset-bottom)); margin-top: 72px; }
   .foot a:hover { color: var(--ink); }
+  .foot__arrow { display: inline-block; }
+  /* small type: a quicker roll than the big headings */
+  .foot__name :global(.roll__c > span) { transition-duration: .4s; }
+  /* at rest the name matches the rest of the line; the ember twin only shows on hover */
+  .foot__name :global(.roll) { color: inherit; }
 </style>

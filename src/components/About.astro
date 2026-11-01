@@ -11,7 +11,7 @@ const facts = [
       <p class="label"><b>02</b> — <span data-scramble>Source</span></p>
       <h2 id="about-title" class="sr-only">About</h2>
       <p class="about__manifesto" data-scroll-reveal>
-        I'm Chris — husband, father, and a developer who makes <span class="hl">music after dark.</span><br />I started on the front end and kept going down the stack: Python engines, Next.js platforms, Electron apps, games. I treat software like a mix. Every part earns its place, nothing clips, and <span class="hl">timing is everything.</span>
+        I'm Chris, a full-stack developer who turns ideas into products people actually use. Web platforms, desktop apps, games — <span class="hl">designed, built and shipped by one pair of hands.</span> Clean code you can build on, and <span class="hl">launches that land on the beat.</span>
       </p>
       <dl class="about__facts">
         {facts.map((f, i) => (
@@ -21,7 +21,6 @@ const facts = [
           </div>
         ))}
       </dl>
-      <p class="about__caption label" aria-hidden="true">Fig. 02 — A simplified excerpt of the AI Mixing &amp; Mastering engine.</p>
     </div>
 
   </div>
@@ -40,7 +39,6 @@ const facts = [
   .about__manifesto .hl { color: var(--ember); }
   .about__facts { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 12px 40px; padding-top: 22px; border-top: 1px solid var(--line); }
   .about__facts dd { margin-top: 10px; font-size: clamp(17px, calc(var(--u) * 1.35), 26px); letter-spacing: -.02em; }
-  .about__caption { max-width: 46ch; }
 
   @media (max-width: 1023px) {
     .about { height: auto; }

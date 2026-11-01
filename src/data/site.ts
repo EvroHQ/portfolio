@@ -8,7 +8,7 @@ export const site = {
   email: "kirkoussis.christophe@hotmail.com",
   url: "https://evrohq.github.io/portfolio/",
   description:
-    "Christophe Kirkoussis is a full-stack developer and music producer based in Belgium, building desktop apps, AI pipelines, games, web platforms and the interfaces on top.",
+    "Christophe Kirkoussis is a full-stack developer and music producer based in Belgium, building full-stack web apps, desktop software and games.",
   status: "Open to freelance work",
   // The v1 résumé link (christophekirkoussis.com/resume.pdf) no longer resolves.
   // Set a working URL here and a "Résumé" link appears in the nav and footer.
@@ -38,8 +38,8 @@ export const chain = [
       "React",
       "Next.js",
       "Astro",
-      "Tailwind CSS",
-      "SCSS",
+      "Tailwind CSS · SCSS",
+      "Electron",
       "PixiJS",
       "GSAP · Framer Motion",
     ],
@@ -49,20 +49,19 @@ export const chain = [
     name: "Systems",
     note: "What does the work",
     tools: [
+      "Node.js",
       "Python",
       "FastAPI",
-      "Celery · Redis",
-      "Node.js",
-      "Electron",
-      "MongoDB · Supabase",
-      "Stripe · Firebase",
+      "Celery",
+      "Stripe",
+      "Claude API",
     ],
   },
   {
     id: "FX",
-    name: "Intelligence",
-    note: "What makes decisions",
-    tools: ["Claude API", "Audio analysis", "DSP pipelines", "Genre detection"],
+    name: "Data",
+    note: "What it remembers",
+    tools: ["MongoDB", "Supabase", "Firebase", "Redis"],
   },
   {
     id: "OUT",

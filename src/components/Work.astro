@@ -3,6 +3,8 @@ import { projects } from '../data/projects';
 import ProjectCover from './ProjectCover.astro';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const pad = (n: number) => String(n).padStart(2, '0');
+// the title's letters, each with a second face that rolls up on hover
+const roll = (word: string) => [...word];
 ---
 <section class="work" id="work" data-section="work" aria-labelledby="work-title">
   <div class="work__pin" data-work-pin>
@@ -13,7 +15,13 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
     <div class="work__track" data-work-track>
       <div class="work__intro">
-        <h2 id="work-title" class="display">Selected<br /><span class="accent">work</span></h2>
+        <h2 id="work-title" class="display work__title" aria-label="Selected work" data-roll>
+          {['Selected', 'work'].map((word, w) => (
+            <span class:list={['roll', { 'roll--accent': w === 1 }]} aria-hidden="true">
+              {roll(word).map((c) => <span class="roll__c" data-roll-c><span>{c}</span><span>{c}</span></span>)}
+            </span>
+          ))}
+        </h2>
         <p class="work__lede">Five records from the last three years — an audio engine, a desktop app, a slot game, a crowdfunding platform and a theme thousands of developers code in. Hover to play them. Click to step inside.</p>
       </div>
 
@@ -33,7 +41,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
       ))}
 
       <div class="work__outro">
-        <p class="display">More<br />soon<span class="accent">.</span></p>
+        <p class="display work__soon">More<br />soon<span class="work__dot" aria-hidden="true"></span></p>
         <a class="pill" href="https://github.com/evrohq" target="_blank" rel="noreferrer" data-magnetic>
           Everything on GitHub
           <span class="pill__dot"><svg viewBox="0 0 14 14" fill="none"><path d="M3 11 11 3M4.5 3H11v6.5" stroke="currentColor" stroke-width="1.4" /></svg></span>
@@ -64,18 +72,28 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .slide__meta { position: relative; margin-top: 28px; pointer-events: none; }
   .slide__index { display: block; margin: 0 0 10px; color: var(--ember); }
   .slide__title {
-    font: 600 clamp(40px, calc(var(--u) * 5.8), 132px)/.86 var(--sans); letter-spacing: -.065em; text-transform: uppercase;
+    font: 600 clamp(40px, calc(var(--u) * 5.8), 132px)/.86 var(--sans); letter-spacing: -.035em; text-transform: uppercase;
     transition: transform .8s var(--ease), letter-spacing .8s var(--ease);
   }
   .slide__kind { margin-top: 14px; font-size: clamp(15px, calc(var(--u) * 1.15), 21px); color: var(--ink-2); display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
 
   .work__outro { flex: none; display: grid; gap: 40px; justify-items: start; padding-right: calc(var(--u) * 12); }
-  .work__progress { position: absolute; left: var(--gutter); right: calc(var(--gutter) + 90px); bottom: 40px; height: 1px; background: var(--line); }
+  /* the full stop, drawn as a square so it spins around its own centre */
+  .work__dot { display: inline-block; width: .15em; height: .15em; margin-left: .05em; background: var(--ember); }
+  /* the drop: a hop, a full spin in the air, a squash on landing; it always lands square */
+  @keyframes dot-drop {
+    0%   { transform: none; animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
+    35%  { transform: translateY(-.55em) rotate(200deg) scale(.85); animation-timing-function: cubic-bezier(.6, 0, .9, .4); }
+    58%  { transform: translateY(0) rotate(360deg); }
+    68%  { transform: translateY(.03em) rotate(360deg) scale(1.45, .6); }
+    82%  { transform: translateY(-.02em) rotate(360deg) scale(.88, 1.14); }
+    100% { transform: rotate(360deg); }
+  }  .work__progress { position: absolute; left: var(--gutter); right: calc(var(--gutter) + 90px); bottom: 40px; height: 1px; background: var(--line); }
   .work__progress span { display: block; height: 100%; background: var(--ember); transform-origin: left; transform: scaleX(0); }
 
   @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-    .slide__link:hover .slide__title { transform: translateX(18px); letter-spacing: -.045em; }
-    .slide__link:is(:hover, :focus-visible) .slide__media {
+    .slide__link:hover .slide__title { transform: translateX(18px); letter-spacing: -.015em; }
+    .work__soon:hover .work__dot { animation: dot-drop .7s both; }    .slide__link:is(:hover, :focus-visible) .slide__media {
       box-shadow: 0 14px 32px rgb(0 0 0 / .2);
     }
   }

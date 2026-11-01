@@ -162,8 +162,8 @@ async function initPage() {
   if (burger && menu) {
     const set = (open: boolean) => {
       burger.setAttribute('aria-expanded', String(open));
-      if (open) { menu.hidden = false; requestAnimationFrame(() => menu.classList.add('is-open')); lenis?.stop(); document.body.style.overflow = 'hidden'; }
-      else { menu.classList.remove('is-open'); lenis?.start(); document.body.style.overflow = ''; setTimeout(() => { if (!menu.classList.contains('is-open')) menu.hidden = true; }, 600); }
+      if (open) { menu.hidden = false; requestAnimationFrame(() => menu.classList.add('is-open')); lenis?.stop(); root.classList.add('is-locked'); }
+      else { menu.classList.remove('is-open'); lenis?.start(); root.classList.remove('is-locked'); setTimeout(() => { if (!menu.classList.contains('is-open')) menu.hidden = true; }, 600); }
     };
     closeMenu = () => set(false);
     burger.addEventListener('click', () => set(burger.getAttribute('aria-expanded') !== 'true'), { signal: abort });
@@ -202,6 +202,62 @@ async function initPage() {
     ScrollTrigger.create({
       trigger: el, start: 'top 88%', once: true,
       onEnter: () => gsap.to(words, { yPercent: 0, rotate: 0, duration: 1.3, ease: EASE, stagger: 0.06, delay: page === 'case' ? 0.25 : 0 }),
+    });
+  });
+
+  // letter roll ([data-roll]): on each line the wave starts at the letter under the cursor and spreads to both sides
+  if (fine && !reduce) document.querySelectorAll<HTMLElement>('[data-roll]').forEach((el) => {
+    const lines = [...el.querySelectorAll<HTMLElement>('.roll')].map((l) => [...l.querySelectorAll<HTMLElement>('[data-roll-c]')]);
+    const step = parseFloat(el.dataset.rollStep || '0.035'); // seconds between two letters of the wave
+    el.addEventListener('pointerenter', (e) => {
+      lines.forEach((letters) => {
+        const xs = letters.map((l) => { const r = l.getBoundingClientRect(); return r.left + r.width / 2; });
+        const origin = xs.reduce((best, x, i) => (Math.abs(x - e.clientX) < Math.abs(xs[best] - e.clientX) ? i : best), 0);
+        letters.forEach((l, i) => l.style.setProperty('--d', `${Math.abs(i - origin) * step}s`));
+      });
+    }, { signal: abort });
+  });
+
+  // back to top: on hover the arrow takes off like a plane, climbs to the top of the window
+  // leaving an ember contrail, and a fresh arrow lands back in its place
+  const topArrow = document.querySelector<HTMLElement>('[data-top-arrow]');
+  if (topArrow && fine && !reduce) {
+    let flying = false;
+    topArrow.closest('a')!.addEventListener('pointerenter', () => {
+      if (flying) return;
+      flying = true;
+      const r = topArrow.getBoundingClientRect();
+      const dist = r.bottom + 24;
+      const plane = topArrow.cloneNode(true) as HTMLElement;
+      Object.assign(plane.style, { position: 'fixed', left: `${r.left}px`, top: `${r.top}px`, margin: '0', zIndex: '90', pointerEvents: 'none', color: 'var(--ember)' });
+      const trail = document.createElement('span');
+      Object.assign(trail.style, {
+        position: 'fixed', left: `${r.left + r.width / 2 - 0.5}px`, top: `${r.bottom}px`, width: '1px', height: '0px', zIndex: '89', pointerEvents: 'none',
+        background: 'linear-gradient(to bottom, var(--ember), transparent)',
+      });
+      document.body.append(trail, plane);
+      gsap.set(topArrow, { opacity: 0 });
+      gsap.timeline({
+        onComplete: () => {
+          plane.remove(); trail.remove();
+          gsap.fromTo(topArrow, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', onComplete: () => { flying = false; } });
+        },
+      })
+        .to(plane, { y: -dist, duration: 1.1, ease: 'power2.in' }, 0)
+        .to(plane, { keyframes: [{ x: -3, rotate: -8, duration: 0.3 }, { x: 3, rotate: 6, duration: 0.4 }, { x: 0, rotate: 0, duration: 0.4 }] }, 0)
+        .to(trail, { height: dist, y: -dist, duration: 1.1, ease: 'power2.in' }, 0)
+        .to(trail, { opacity: 0, duration: 0.6, ease: 'power1.out' }, 0.6);
+    }, { signal: abort });
+  }
+
+  // roll headings that also rise in on scroll: the letters come up through their line window,
+  // then the transform is handed back to the hover CSS
+  if (!reduce) document.querySelectorAll<HTMLElement>('[data-roll-rise]').forEach((el) => {
+    const faces = [...el.querySelectorAll<HTMLElement>('.roll__c > span:first-child')];
+    gsap.set(faces, { yPercent: 100 });
+    ScrollTrigger.create({
+      trigger: el, start: 'top 88%', once: true,
+      onEnter: () => gsap.to(faces, { yPercent: 0, duration: 1.1, ease: EASE, stagger: 0.025, onComplete: () => gsap.set(faces, { clearProps: 'transform' }) }),
     });
   });
 
@@ -268,10 +324,17 @@ async function runLoader(m: Matter | null) {
   if (!firstLoad || reduce) { loader.remove(); return; }
   const count = loader.querySelector<HTMLElement>('[data-loader-count]')!;
   const bar = loader.querySelector<HTMLElement>('[data-loader-bar]')!;
+  const stage = loader.querySelector<HTMLElement>('[data-loader-stage]');
+  const STAGES = ['Warming up the desk', 'Patching the signal chain', 'Gain staging', 'Cueing the drop'];
   const state = { v: 0 };
   await gsap.to(state, {
     v: 100, duration: 1.6, ease: 'power2.inOut',
-    onUpdate: () => { count.textContent = String(Math.round(state.v)).padStart(3, '0'); bar.style.transform = `scaleX(${state.v / 100})`; },
+    onUpdate: () => {
+      count.textContent = String(Math.round(state.v)).padStart(3, '0');
+      bar.style.transform = `scaleX(${state.v / 100})`;
+      const s = STAGES[Math.min(STAGES.length - 1, Math.floor(state.v / 25))];
+      if (stage && stage.textContent !== s) stage.textContent = s;
+    },
   });
   loader.classList.add('is-done');
   setTimeout(() => loader.remove(), 900);
@@ -508,13 +571,24 @@ function initMarquee() {
   const rows = [...document.querySelectorAll<HTMLElement>('[data-marquee-row]')];
   if (!rows.length || reduce) return;
   const skew = rows.map((r) => gsap.quickTo(r, 'skewX', { duration: 0.5, ease: 'power3.out' }));
-  const shift = rows.map((r) => gsap.quickTo(r, 'x', { duration: 0.8, ease: 'power3.out' }));
+  // each row drifts on its own; scrolling speeds the drift up in its own direction (never against it)
+  const drift = rows.map((r, i) => gsap.fromTo(r.querySelectorAll('.marquee__set'),
+    { xPercent: i ? -100 : 0 }, { xPercent: i ? 0 : -100, duration: i ? 44 : 38, ease: 'none', repeat: -1 }));
+  let boost = 0, speed = 1;
+  const tick = (_: number, ms: number) => {
+    const dt = Math.min(ms, 100) / 1000;
+    boost *= Math.exp(-2.5 * dt);
+    speed += (1 + boost - speed) * (1 - Math.exp(-8 * dt));
+    drift.forEach((t) => t.timeScale(speed));
+  };
+  gsap.ticker.add(tick);
+  cleanup.push(() => { gsap.ticker.remove(tick); drift.forEach((t) => t.kill()); });
   ScrollTrigger.create({
     trigger: '[data-marquee]', start: 'top bottom', end: 'bottom top',
     onUpdate: (s) => {
-      const v = gsap.utils.clamp(-14, 14, s.getVelocity() / 260);
-      skew.forEach((fn, i) => fn(i ? v : -v));
-      shift.forEach((fn, i) => fn((i ? -1 : 1) * (s.progress - 0.5) * 300));
+      const vel = s.getVelocity();
+      skew.forEach((fn, i) => fn(gsap.utils.clamp(-8, 8, vel / 400) * (i ? 1 : -1)));
+      boost = Math.max(boost, Math.min(5, Math.abs(vel) / 500));
     },
   });
 }
