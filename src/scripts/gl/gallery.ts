@@ -12,12 +12,13 @@ void main(){
   vec3 p = position * vec3(uSize, 1.0);
   float arc = sin(uv.x * 3.14159);
   // scroll velocity bends the sheet like paper in the wind
-  p.z -= arc * uVel * 2.2 * (1.0 - uFull);
-  p.y += arc * uVel * 0.35 * (1.0 - uFull);
-  // hover: the sheet swells toward the viewer and ripples from the cursor
+  float bend = clamp(uVel, -8.0, 8.0) * (1.0 - uFull);
+  p.z -= arc * bend;
+  p.y += arc * bend * 0.15;
+  // A gentle hover lift keeps UI screenshots readable.
   float md = distance(uv, uMouse);
   float swell = (1.0 - smoothstep(0.0, 0.75, md)) * uHover;
-  p.z += swell * 60.0 + sin(md * 28.0 - uTime * 5.0) * 5.0 * uHover * (1.0 - md);
+  p.z += swell * 12.0 * (1.0 - uFull);
   vShade = swell;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
 }`;
@@ -36,15 +37,8 @@ void main(){
   float sc = max(s.x, s.y);
   vec2 uv = (vUv - 0.5) * (uSize / (uImg * sc)) + 0.5;
   uv = (uv - 0.5) * (1.0 - 0.06 * uHover * (1.0 - uFull)) + 0.5;
-  // liquid displacement under the cursor
-  float md = distance(vUv, uMouse);
-  uv += (vUv - uMouse) * sin(md * 30.0 - uTime * 6.0) * 0.012 * uHover * (1.0 - md);
-  // velocity → RGB split
-  float sh = clamp(uVel * 0.0016, -0.03, 0.03);
-  vec3 col;
-  col.r = texture2D(uTex, uv + vec2(sh, 0.0)).r;
-  col.g = texture2D(uTex, uv).g;
-  col.b = texture2D(uTex, uv - vec2(sh, 0.0)).b;
+  // Sample all channels together: no colour fringes or liquid distortion.
+  vec3 col = texture2D(uTex, uv).rgb;
   // at rest: warm, half-desaturated and slightly lifted (the screenshots are dark UIs); full colour when played
   float l = dot(col, vec3(0.299, 0.587, 0.114));
   vec3 rest = mix(col, vec3(l) * vec3(1.06, 0.97, 0.88), 0.55);
@@ -186,6 +180,8 @@ export class Gallery {
   private tick(t: number, dt: number) {
     const e = this.engine;
     const k = 1 - Math.pow(0.002, dt);
+    // ScrollTrigger stops updating at rest; let the last impulse settle.
+    this.velocity *= Math.exp(-12 * dt);
     for (const s of this.slides) {
       const r = s.el.getBoundingClientRect();
       const u = s.mesh.material.uniforms;
@@ -197,7 +193,7 @@ export class Gallery {
       const f = s.full;
       s.mesh.position.set(c.x * (1 - f), c.y * (1 - f), 0);
       (u.uSize.value as THREE.Vector2).set(r.width + (e.w - r.width) * f, r.height + (e.h - r.height) * f);
-      u.uVel.value += (this.velocity - u.uVel.value) * 0.15;
+      u.uVel.value += (this.velocity - u.uVel.value) * k;
       u.uHover.value = s.hover;
       u.uFull.value = f;
       u.uTime.value = t;
