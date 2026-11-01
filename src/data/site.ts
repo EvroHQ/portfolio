@@ -10,8 +10,6 @@ export const site = {
   description:
     "Christophe Kirkoussis is a full-stack developer and music producer based in Belgium, building full-stack web apps, desktop software and games.",
   status: "Open to freelance work",
-  // The v1 résumé link (christophekirkoussis.com/resume.pdf) no longer resolves.
-  // Set a working URL here and a "Résumé" link appears in the nav and footer.
   resumeUrl: null as string | null,
   socials: [
     { label: "GitHub", handle: "@evrohq", href: "https://github.com/evrohq" },
@@ -48,14 +46,7 @@ export const chain = [
     id: "PR",
     name: "Systems",
     note: "What does the work",
-    tools: [
-      "Node.js",
-      "Python",
-      "FastAPI",
-      "Celery",
-      "Stripe",
-      "Claude API",
-    ],
+    tools: ["Node.js", "Python", "FastAPI", "Celery", "Stripe", "Claude API"],
   },
   {
     id: "FX",
