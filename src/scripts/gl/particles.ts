@@ -51,6 +51,7 @@ uniform vec2 uPointerVel; // smoothed cursor velocity, px/s
 uniform float uScr[20];   // per-letter glyph shown: 0 = the real letter, 1..3 = a scramble glyph
 uniform vec2 uNameOffset;
 uniform vec2 uMonoOffset;
+uniform float uMonoLift; // px the mark is pushed up so the contact links never run under it
 uniform vec4 uRip[${RIPPLES}];
 attribute vec3 aA;
 attribute vec3 aB;
@@ -119,7 +120,7 @@ void main(){
     else if (scr > 1.5) nameP = vec3(aG.zw, aA.z);
     else if (scr > 0.5) nameP = vec3(aG.xy, aA.z);
   }
-  vec3 pos = (nameP + vec3(uNameOffset, 0.0)) * uW.x + editor(aB) * uW.y + dust * uW.z + (monoTilt(aD) + vec3(uMonoOffset, 0.0)) * uW.w;
+  vec3 pos = (nameP + vec3(uNameOffset, 0.0)) * uW.x + editor(aB) * uW.y + dust * uW.z + (monoTilt(aD) + vec3(uMonoOffset.x, uMonoOffset.y + uMonoLift, 0.0)) * uW.w;
 
   // explosion: each grain flies along its own turbulent path, peaking mid-transition
   float e = uExplode * (0.55 + aR.w * 0.9);
@@ -267,7 +268,9 @@ export class Matter {
   private rip = Array.from({ length: RIPPLES }, () => new THREE.Vector4(0, 0, -10, 0));
   private ripIdx = 0;
   /** smoothed values driven by the app */
-  target = { w: [...STATES.name] as Weights, explode: 0, alpha: 1, heat: 0, tilt: -0.35, energy: 0 };
+  target = { w: [...STATES.name] as Weights, explode: 0, alpha: 1, heat: 0, tilt: -0.35, energy: 0, monoLift: 0 };
+  /** where the mark's bottom edge sits, in viewport px from the top, before any lift */
+  monoBottom = 0;
   private energy = 0;
   private w = [...STATES.name] as Weights;
   /** world-space boxes of the name's letters, and each letter's decode clock */
@@ -309,7 +312,7 @@ export class Matter {
         uPointer: { value: new THREE.Vector2(9999, 9999) }, uPointerOn: { value: 0 }, uPointerVel: { value: new THREE.Vector2() },
         uScr: { value: new Array(20).fill(0) },
 
-        uNameOffset: { value: new THREE.Vector2() }, uMonoOffset: { value: new THREE.Vector2() }, uMonoTilt: { value: new THREE.Vector2() },
+        uNameOffset: { value: new THREE.Vector2() }, uMonoOffset: { value: new THREE.Vector2() }, uMonoLift: { value: 0 }, uMonoTilt: { value: new THREE.Vector2() },
         uRip: { value: this.rip },
         uIvory: { value: new THREE.Color('#f2ece2') }, uEmber: { value: new THREE.Color('#ff5a1f') }, uAsh: { value: new THREE.Color('#8a8178') },
       },
@@ -479,7 +482,9 @@ export class Matter {
     }, S, S, small ? 2 : 3);
     fill(this.attr('aD'), mono, N, 2, rnd);
     // top-right, beside the title: the email and the link list below stay clear
-    (this.material.uniforms.uMonoOffset.value as THREE.Vector2).set(narrow ? vw / 2 - S / 2 - 12 : fw / 2 - S / 2 - fw * 0.06, narrow ? vh / 2 - S / 2 - 70 : vh / 2 - S / 2 - vh * 0.1);
+    const monoY = narrow ? vh / 2 - S / 2 - 70 : vh / 2 - S / 2 - vh * 0.1;
+    (this.material.uniforms.uMonoOffset.value as THREE.Vector2).set(narrow ? vw / 2 - S / 2 - 12 : fw / 2 - S / 2 - fw * 0.06, monoY);
+    this.monoBottom = vh / 2 - (monoY - S / 2);
 
     // CODE EDITOR placement + targets
     const u = this.material.uniforms;
@@ -633,6 +638,8 @@ export class Matter {
     this.target.energy *= Math.pow(0.25, dt);
     u.uEdScroll.value += dt * u.uEdLineH.value * (0.45 + this.energy * 9);
     u.uTime.value = reduceMotion ? 4 : t;
+    // not smoothed: the page scroll already is, and the mark must stay locked to the text
+    u.uMonoLift.value = this.target.monoLift;
 
     const e = this.engine;
     const p = u.uPointer.value as THREE.Vector2;
@@ -646,7 +653,7 @@ export class Matter {
     // monogram tilt: it turns toward the cursor (up to ~25°), settles back flat when the cursor leaves
     const mc = u.uMonoOffset.value as THREE.Vector2, tilt = u.uMonoTilt.value as THREE.Vector2;
     const tx = on ? THREE.MathUtils.clamp((e.pointer.x - mc.x) / (e.w * 0.5), -1, 1) * 0.45 : 0;
-    const ty = on ? -THREE.MathUtils.clamp((e.pointer.y - mc.y) / (e.h * 0.5), -1, 1) * 0.35 : 0;
+    const ty = on ? -THREE.MathUtils.clamp((e.pointer.y - mc.y - u.uMonoLift.value) / (e.h * 0.5), -1, 1) * 0.35 : 0;
     const kt = 1 - Math.pow(0.03, dt);
     tilt.set(tilt.x + (tx - tilt.x) * kt, tilt.y + (ty - tilt.y) * kt);
     // letter decode: entering a letter makes it flicker through glyphs (~70ms each) for 0.55s

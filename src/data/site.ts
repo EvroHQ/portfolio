@@ -19,6 +19,11 @@ export const site = {
       href: "https://www.linkedin.com/in/christophekirkoussis",
     },
     {
+      label: "Malt",
+      handle: "christophekirkoussis",
+      href: "https://www.malt.com/profile/christophekirkoussis",
+    },
+    {
       label: "VS Marketplace",
       handle: "Evro Dark theme",
       href: "https://marketplace.visualstudio.com/items?itemName=EvroHQ.evro-dark",

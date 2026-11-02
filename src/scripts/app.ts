@@ -551,10 +551,12 @@ async function initPage() {
       if (reduce) return;
       const N = words.length;
       gsap.set(words, { opacity: 0.12 });
+      // the about block is only pinned on desktop; below 1024px it scrolls past, so read along the paragraph itself
+      const pinned = !!el.closest(".about") && innerWidth >= 1024;
       ScrollTrigger.create({
-        trigger: el.closest(".about") || el,
-        start: el.closest(".about") ? "top top" : "top 80%",
-        end: el.closest(".about") ? "center center" : "bottom 50%",
+        trigger: pinned ? el.closest(".about") : el,
+        start: pinned ? "top top" : "top 70%",
+        end: pinned ? "top -65%" : "bottom 40%",
         scrub: true,
         onUpdate: ({ progress: p }) =>
           words.forEach((w, i) => {
@@ -825,10 +827,34 @@ async function initHome(m: Matter | null, abort: AbortSignal) {
       },
     });
   scrub("#about", "a", "top 85%", "top top");
-  scrub("#work", "w", "top 95%", "top top");
+  // on mobile the about text scrolls past instead of pinning: hold the editor until the reel is well in view
+  scrub("#work", "w", innerWidth < 1024 ? "top 82%" : "top 95%", "top top");
   scrub("#skills", "s", "top 80%", "top 20%");
-  scrub("#contact", "c", "top 90%", "top 15%");
+  scrub("#contact", "c", "top 75%", "top 15%");
   compose();
+
+  // the mark rides in with the contact section and forms in place; once the section has settled
+  // it holds still, until the link list reaches it and pushes it up just enough to clear it
+  const contact = document.querySelector<HTMLElement>("#contact");
+  const socials = document.querySelector<HTMLElement>(".contact__socials");
+  if (contact && socials) {
+    const lift = () => {
+      const rest = innerHeight * 0.15;
+      const top = contact.getBoundingClientRect().top;
+      m.target.monoLift =
+        top > rest
+          ? rest - top
+          : Math.max(0, m.monoBottom + 32 - socials.getBoundingClientRect().top);
+    };
+    ScrollTrigger.create({
+      trigger: contact,
+      start: "top bottom",
+      end: "bottom bottom",
+      onUpdate: lift,
+      onRefresh: lift,
+    });
+    lift();
+  }
 
   // the editor turns toward the text while you read; scroll speed makes the code run faster
   ScrollTrigger.create({
