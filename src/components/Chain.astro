@@ -26,9 +26,9 @@ const words = chain.map((c) => c.name);
     {chain.map((c, i) => (
       <li class="stack__col reveal" style={`--d:${i * 0.08}s`}>
         <p class="label stack__id"><b>{c.id}</b> · CH {i + 1}</p>
-        <h3 class="stack__name">{c.name}</h3>
+        <h3 class="stack__name" aria-label={c.name} data-roll><span class="roll" aria-hidden="true">{[...c.name].map((ch) => <span class="roll__c" data-roll-c><span>{ch}</span><span>{ch}</span></span>)}</span></h3>
         <p class="stack__note">{c.note}</p>
-        <ul class="stack__tools">{c.tools.map((t) => <li>{t}</li>)}</ul>
+        <ul class="stack__tools">{c.tools.map((t) => <li class="stack__tool">{t}</li>)}</ul>
       </li>
     ))}
   </ol>
@@ -56,6 +56,13 @@ const words = chain.map((c) => c.name);
   .stack__name { margin-top: 40px; font: 600 clamp(28px, calc(var(--u) * 2.9), 60px)/1 var(--sans); letter-spacing: -.055em; text-transform: uppercase; }
   .stack__note { margin-top: 10px; color: var(--ink-3); font-size: clamp(15px, calc(var(--u) * 1.1), 20px); }
   .stack__tools { margin-top: 32px; display: grid; gap: 8px; color: var(--ink-2); font-size: clamp(15px, calc(var(--u) * 1.15), 21px); }
+  /* on hover a short ember tick draws in from the left and nudges the name over, which brightens */
+  .stack__tool { position: relative; width: fit-content; transition: color .35s var(--ease-state), transform .45s var(--ease); }
+  .stack__tool::before { content: ''; position: absolute; left: -18px; top: 50%; width: 12px; height: 1px; background: var(--ember); transform: scaleX(0); transform-origin: left; transition: transform .45s var(--ease); }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .stack__tool:hover { color: var(--ink); transform: translateX(18px); }
+    .stack__tool:hover::before { transform: scaleX(1); }
+  }
 
   @media (max-width: 1023px) {
     .stack { grid-template-columns: 1fr 1fr; row-gap: 48px; padding-right: var(--gutter); }

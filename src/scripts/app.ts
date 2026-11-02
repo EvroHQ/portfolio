@@ -12,6 +12,7 @@ import {
 import { Matter, STATES, type Weights } from "./gl/particles";
 import { Gallery } from "./gl/gallery";
 import { Backdrop } from "./gl/backdrop";
+import { ZONE_COUNTRY } from "../data/zones";
 
 gsap.registerPlugin(ScrollTrigger);
 // mobile: don't recompute every trigger when the address bar shows/hides
@@ -118,9 +119,15 @@ addEventListener(
     if (target === null) return;
     e.preventDefault();
     closeMenu?.();
-    if (lenis) lenis.scrollTo(target, { duration: 1.8 });
-    else if (target === 0) scrollTo({ top: 0 });
-    else target.scrollIntoView();
+    // longer trips take longer, on an ease-in-out so the page sets off and lands gently
+    const to = target === 0 ? 0 : target.getBoundingClientRect().top + scrollY;
+    const screens = Math.abs(to - scrollY) / innerHeight;
+    const duration = Math.min(3.2, 1.2 + screens * 0.18);
+    const easing = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    if (lenis) lenis.scrollTo(target, { duration, easing });
+    else if (target === 0) scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    else target.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
   },
   { capture: true },
 );
@@ -244,13 +251,19 @@ async function initPage() {
     });
   }
 
-  // clock
+  // clock: the visitor's own country and local time, read from the browser (no lookup service)
   const clock = document.querySelector<HTMLTimeElement>("[data-clock]");
   if (clock) {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const region = navigator.languages
+      .map((l) => l.split("-")[1])
+      .find((r) => r && /^[A-Z]{2}$/i.test(r));
+    const country = ZONE_COUNTRY[zone] ?? region?.toUpperCase();
+    const code = document.querySelector<HTMLElement>("[data-clock-country]");
+    if (code) code.textContent = country ?? "";
     const fmt = new Intl.DateTimeFormat("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "Europe/Brussels",
     });
     const tick = () => {
       clock.textContent = fmt.format(new Date());

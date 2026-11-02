@@ -12,6 +12,8 @@ export const getStaticPaths = (() =>
 const { project: p, next } = Astro.props as { project: Project; next: Project };
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const ar = typeof p.cover !== 'string' ? p.cover.width / p.cover.height : 1.6;
+// longest word drives the mobile title size so it never overflows the viewport
+const longest = Math.max(...p.title.split(/\s+/).map((w) => w.length));
 ---
 <Base title={p.title} description={p.summary} page="case">
   <article class="case" data-section="case">
@@ -20,7 +22,7 @@ const ar = typeof p.cover !== 'string' ? p.cover.width / p.cover.height : 1.6;
         <a class="label case__back" href={`${base}/#work`}>← Back to the reel</a>
         <p class="label"><b>{p.index}</b> — {p.year} — {p.kind}</p>
       </div>
-      <h1 class="case__title display" data-split>{p.title}</h1>
+      <h1 class="case__title display" data-split style={`--longest: ${longest}`}>{p.title}</h1>
       <div class="case__intro">
         <p class="case__summary reveal">{p.summary}</p>
         <dl class="case__meta">
@@ -131,7 +133,7 @@ const ar = typeof p.cover !== 'string' ? p.cover.width / p.cover.height : 1.6;
     .case__block { grid-template-columns: 1fr; gap: 20px; }
     .case__gallery { grid-template-columns: 1fr; }
     .case__intro { grid-template-columns: 1fr; }
-    .case__title { font-size: 16vw; }
+    .case__title { font-size: min(16vw, calc(84vw / (var(--longest) * .68))); }
   }
   @media (max-width: 560px) {
     .case__top { flex-direction: column-reverse; gap: 14px; }

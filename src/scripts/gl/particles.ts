@@ -137,16 +137,13 @@ void main(){
   // the hovered line takes Evro Dark's mint cursor colour
   vEd = mix(aK, vec3(0.463, 0.925, 0.718), edGlow * 0.9);
   vEdW = uW.y;
-  // the mark burns in the site's ember: copper to bright ember grains, with a few ivory sparks
-  vec3 monoCol = aR.y > 0.93 ? vec3(0.95, 0.925, 0.886) : mix(vec3(0.45, 0.16, 0.07), vec3(1.0, 0.353, 0.122), aR.z);
-  // the name is ivory shot through with copper: ~55% of its grains, from deep copper to gold
-  vec3 nameCol = aR.y < 0.55 ? mix(vec3(0.55, 0.27, 0.12), vec3(0.93, 0.62, 0.36), aR.z) : vec3(0.95, 0.925, 0.886);
-  vMono = uW.x > uW.w ? nameCol : monoCol;
-  // what heat (click, hold to charge) turns a grain into: copper on the name, ember everywhere else
-  vHeatCol = mix(vec3(1.0, 0.353, 0.122), vec3(0.86, 0.5, 0.26), uW.x);
+  // the name and the mark are ivory shot through with copper: ~55% of their grains, from deep copper to gold
+  vMono = aR.y < 0.55 ? mix(vec3(0.55, 0.27, 0.12), vec3(0.93, 0.62, 0.36), aR.z) : vec3(0.95, 0.925, 0.886);
+  // what heat (click, hold to charge) turns a grain into: copper on the name and the mark, ember everywhere else
+  vHeatCol = mix(vec3(1.0, 0.353, 0.122), vec3(0.86, 0.5, 0.26), uW.x + uW.w);
   vMonoW = uW.w + uW.x;
-  // sparkle: now and then a grain of the name catches the light (a brief flash, never a move)
-  float spark = pow(max(0.0, sin(uTime * (0.6 + aR.w * 1.4) + aR.x * 60.0)), 90.0) * uW.x * 0.7;
+  // sparkle: now and then a grain of the name or the mark catches the light (a brief flash, never a move)
+  float spark = pow(max(0.0, sin(uTime * (0.6 + aR.w * 1.4) + aR.x * 60.0)), 90.0) * (uW.x + uW.w) * 0.7;
   vec3 disp = vec3(0.0);
   for (int i = 0; i < ${RIPPLES}; i++) {
     vec4 rp = uRip[i];
@@ -178,8 +175,8 @@ void main(){
   float depth = clamp(persp, 0.25, 1.2);
   vAlpha = uAlpha * mix(0.45 + 0.55 * aR.z, 0.75 + 0.25 * aR.z, uW.x) * (1.0 - min(heat, 2.0) * 0.12) * mix(1.0, 0.55 * depth, uW.z) * mix(1.0, edVis * (aE.x < 0.25 ? 0.55 : 1.0), uW.y);
   vAlpha *= mix(1.0, step(aR.w, 0.4), uW.w); // the mark keeps only 40% of the grains: airier
-  // the name's grains twinkle faintly, each at its own pace, and brighten as the glint passes
-  vAlpha *= mix(1.0, 0.9 + 0.1 * sin(uTime * (1.2 + aR.x * 1.8) + aR.y * 40.0), uW.x) * (1.0 + vGlint * 0.45) + spark * 0.6;
+  // the name and the mark twinkle faintly, each grain at its own pace; the name brightens as the glint passes
+  vAlpha *= mix(1.0, 0.9 + 0.1 * sin(uTime * (1.2 + aR.x * 1.8) + aR.y * 40.0), uW.x + uW.w) * (1.0 + vGlint * 0.45) + spark * 0.6;
   vGlint = max(vGlint, spark); // the flash is white-hot ivory, even on a copper grain
 }`;
 

@@ -15,7 +15,7 @@ const links = [
     <span class="nav__mark"><Monogram class="nav__mono" /></span>
     <span class="nav__name">{site.name}</span>
   </a>
-  <p class="nav__clock label" aria-label="Local time in Belgium"><span>BE</span> <time data-clock>--:--</time></p>
+  <p class="nav__clock label" aria-label="Your local time"><span data-clock-country>BE</span> <time data-clock>--:--</time></p>
   <nav class="nav__links" aria-label="Primary">
     {links.map((l) => (
       <a class="nav__link" href={l.href} aria-label={l.label}><span class="nav__label" data-label={l.label}><span data-scramble-hover aria-hidden="true">{l.label}</span></span>{l.count && <sup>{l.count}</sup>}</a>

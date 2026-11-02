@@ -6,6 +6,7 @@ import dlObsidian from "../assets/work/downloader-obsidian-violet.png";
 import evrodark from "../assets/work/evrodark.png";
 import fundoora from "../assets/work/fundoora.png";
 import neonBrew from "../assets/work/neon-brew.png";
+import lunch from "../assets/work/lunch.png";
 import type { ImageMetadata } from "astro";
 
 export interface Project {
@@ -78,10 +79,12 @@ export const projects: Project[] = [
     year: "2026",
     kind: "Desktop app · Windows",
     stack: [
-      "Electron",
-      "React",
+      "Electron 31",
+      "React 18",
       "Tailwind CSS",
       "Framer Motion",
+      "electron-vite",
+      "electron-builder",
       "yt-dlp",
       "ffmpeg",
     ],
@@ -117,6 +120,8 @@ export const projects: Project[] = [
       "Audio as WAV 44.1 kHz or MP3 320 kbps; video up to 4K, or an H.264 + AAC “compatible” mode for editors.",
       "Trim to a time range, split by chapters, and embed tags and cover art.",
       "Seven hand-tuned themes, dark and light; the last one is remembered.",
+      "Built with electron-vite, packaged for Windows with electron-builder and released through GitHub Actions; electron-updater ships each release from GitHub Releases.",
+      "Settings persist with electron-store; icons by lucide-react, toasts by sonner. Plain JavaScript, MIT licensed.",
     ],
   },
   {
@@ -125,32 +130,83 @@ export const projects: Project[] = [
     title: "Neon Brew",
     year: "2026",
     kind: "Slot game · Design & dev",
-    stack: ["PixiJS", "TypeScript", "WebGL"],
+    stack: [
+      "Svelte 5",
+      "PixiJS 8",
+      "TypeScript",
+      "GSAP",
+      "Spine 4.2",
+      "Web Audio",
+      "Stake Engine",
+    ],
     stat: "Art direction + code",
     cover: neonBrew,
     coverAlt:
       "Neon Brew slot game: a frog alchemist beside five reels in a night-time potion workshop",
-    status: "Designed and built in 2026",
+    status: "Designed and built in 2026 for Stake Engine",
     links: [],
     summary:
-      "A potion-brewing slot game with a frog alchemist, five reels in a moonlit workshop and two extra rows sealed in wax — drawn, designed and built end to end.",
+      "A potion-brewing slot game with a frog alchemist, five reels in a moonlit workshop and two extra rows sealed in wax — art-directed, designed and built end to end.",
     brief:
-      "I wanted to see how far a slot game goes when the same person draws the world and writes the code: one character with attitude, a night-time workshop, and an interface you can read at a glance.",
+      "I wanted to see how far a slot game goes when the same person directs the world and writes the code: one character with attitude, a night-time workshop, and an interface you can read at a glance.",
     built: [
       "The full art direction: the frog alchemist, the moonlit workshop, the symbol set and the wax-seal row locks.",
-      "The game itself, rendered in WebGL with PixiJS and written in TypeScript.",
-      "The game interface: balance, bet stepper, spin, auto-play, turbo and a bonus button.",
-      "A scene composition that frames the reels with the character and the potion flask without crowding them.",
+      "The game, rendered with PixiJS 8 on a fixed 1920×1080 stage (1080×1920 in portrait), animated with GSAP and pixi-filters.",
+      "A Spine 4.2 rig for the frog, played back in Pixi, plus a Web Audio sound layer.",
+      "The interface in Svelte 5: bet bar, menus, rules and bonus screens over the canvas.",
+      "A TypeScript game engine that turns each spin into a book of events in Stake's RGS format, with RTP simulation, maths export and a mock RGS server.",
     ],
     details: [
       "High-pay icons — goggles, mortar, spellbook, ruby — stand apart from bold, colour-coded card letters.",
       "Two extra reel rows wait behind wax seals above the grid.",
-      "One person from character sketch to spin button.",
+      "An asset pipeline in Python: GPU background removal (BiRefNet), Real-ESRGAN upscaling and ffmpeg, feeding the symbols, UI and Spine rig.",
+      "Images generated with ChatGPT, animations with Kling AI and music with Suno, finished in Ableton.",
+      "Browser tests with Playwright.",
+    ],
+  },
+  {
+    slug: "lunch",
+    index: "A4",
+    title: "Lunch",
+    year: "2026",
+    kind: "B2B ordering app · Full stack",
+    stack: [
+      "React Native Web",
+      "Expo",
+      "TypeScript",
+      "Zustand",
+      "Node.js",
+      "Express",
+      "Supabase",
+      "Stripe Connect",
+    ],
+    stat: "Fully automated",
+    cover: lunch,
+    coverAlt:
+      "Lunch ordering app: a sandwich menu by category, one item in the basket and a “Voir ma commande” bar",
+    status: "Live · Vercel + Railway",
+    links: [],
+    summary:
+      "A lunch ordering app for companies that get their staff's lunch from a partner sandwich shop: each company gets its own app, built for it, where its workers and staff order and pay themselves — and everything after that runs on its own.",
+    brief:
+      "Companies often work with one local sandwich shop to feed their workers and staff at lunch. On a work site or in an office, someone usually ends up collecting those orders by phone, on a list or in a group chat, then chasing the money. I built a dedicated app per company instead: every employee orders directly, pays upfront, and the orders, the restaurant recap and the payouts are handled automatically.",
+    built: [
+      "One app per company, set up for that company: its staff open the link, order and pay, with no one in the middle collecting orders.",
+      "A web app in Expo and React Native Web (React 19, TypeScript strict), with file-based routes and tab navigation via expo-router.",
+      "A basket in Zustand, kept in the browser so an order survives a reload.",
+      "A Node.js / Express API with CORS and rate limiting, on Railway, backed by Supabase (PostgreSQL).",
+      "Payments through Stripe Connect and Stripe Checkout — Bancontact, Visa and Mastercard — confirmed by webhooks.",
+      "Full automation with node-cron: a daily HTML recap of the orders is emailed to the restaurant at 10:10 via Resend, and the restaurant is paid out every Saturday at 8:00.",
+    ],
+    details: [
+      "The menu comes from an external REST API, filled in by HTML scraping, and cached in memory for an hour.",
+      "Front served as a static site on Vercel, watched with Vercel Analytics and Speed Insights.",
+      "Set in Lato, with a sticky category bar and an order bar that follows the basket.",
     ],
   },
   {
     slug: "fundoora",
-    index: "A4",
+    index: "A5",
     title: "Fundoora",
     year: "2025",
     kind: "Crowdfunding platform",
@@ -189,7 +245,7 @@ export const projects: Project[] = [
   },
   {
     slug: "evro-dark",
-    index: "A5",
+    index: "A6",
     title: "Evro Dark",
     year: "2024",
     kind: "VS Code theme",
@@ -197,12 +253,13 @@ export const projects: Project[] = [
     stat: "3,930 installs",
     cover: evrodark,
     coverAlt: "Two VS Code windows using the Evro Dark colour theme",
-    status: "Published on the VS Code Marketplace",
+    status: "Published on the VS Code Marketplace and Open VSX",
     links: [
       {
         label: "Marketplace",
         href: "https://marketplace.visualstudio.com/items?itemName=EvroHQ.evro-dark",
       },
+      { label: "Open VSX", href: "https://open-vsx.org/extension/EvroHQ/evro-dark" },
       { label: "Source", href: "https://github.com/EvroHQ/EvroDark" },
     ],
     summary:

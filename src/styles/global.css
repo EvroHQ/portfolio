@@ -47,6 +47,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 h1, h2, h3, p, ul, ol, dl, dd, figure { margin: 0; padding: 0; }
 ul, ol { list-style: none; }
 ::selection { background: rgb(255 90 31 / .45); color: #fff; }
+/* animated display type is split into per-word / per-letter boxes, which a selection paints as broken blocks:
+   it stays readable by screen readers and the page text, emails and links remain selectable */
+[data-split], [data-scroll-reveal], [data-roll], .display { -webkit-user-select: none; user-select: none; }
 
 :focus-visible { outline: 2px solid var(--signal); outline-offset: 4px; border-radius: 2px; }
 
