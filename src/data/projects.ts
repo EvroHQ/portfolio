@@ -1,11 +1,14 @@
-import downloader from "../assets/work/downloader.png";
+import dlEvrohq from "../assets/work/downloader-evrohq.png";
 import dlGraphite from "../assets/work/downloader-graphite-amber.png";
 import dlCarbon from "../assets/work/downloader-carbon-cyan.png";
 import dlPaper from "../assets/work/downloader-paper-rust.png";
 import dlObsidian from "../assets/work/downloader-obsidian-violet.png";
+import dlBone from "../assets/work/downloader-bone-forest.png";
+import dlCharcoal from "../assets/work/downloader-charcoal-signal-red.png";
 import evrodark from "../assets/work/evrodark.png";
 import fundoora from "../assets/work/fundoora.png";
-import neonBrew from "../assets/work/neon-brew.png";
+import midnight13 from "../assets/work/midnight13.png";
+import evrogamesLogo from "../assets/work/evrogames-Logo.png";
 import lunch from "../assets/work/lunch.png";
 import type { ImageMetadata } from "astro";
 
@@ -13,6 +16,10 @@ export interface Project {
   slug: string;
   index: string;
   title: string;
+  /** studio credited beside the title */
+  studio?: string;
+  /** white wordmark shown in place of the studio name */
+  studioLogo?: ImageMetadata;
   year: string;
   kind: string;
   stack: string[];
@@ -88,14 +95,16 @@ export const projects: Project[] = [
       "yt-dlp",
       "ffmpeg",
     ],
-    stat: "v2.3.5 · 7 themes",
+    stat: "v2.6.1 · 7 themes",
     cover: dlCarbon,
     coverAlt:
-      "EvroHQ Downloader window previewing a six-track playlist ready to download",
+      "EvroHQ Downloader window previewing a 314-track playlist with five tracks selected for MP3 download",
     gallery: [
       { src: dlGraphite, alt: "Graphite & Amber theme" },
-      { src: downloader, alt: "EvroHQ theme" },
+      { src: dlEvrohq, alt: "EvroHQ theme" },
+      { src: dlCharcoal, alt: "Charcoal & Signal Red theme" },
       { src: dlObsidian, alt: "Obsidian & Violet theme" },
+      { src: dlBone, alt: "Bone & Forest light theme" },
       { src: dlPaper, alt: "Paper & Rust light theme" },
     ],
     status: "Released · open source (MIT)",
@@ -125,9 +134,11 @@ export const projects: Project[] = [
     ],
   },
   {
-    slug: "neon-brew",
+    slug: "midnight-13",
     index: "A3",
-    title: "Neon Brew",
+    title: "Midnight 13",
+    studio: "evrogames",
+    studioLogo: evrogamesLogo,
     year: "2026",
     kind: "Slot game · Design & dev",
     stack: [
@@ -140,25 +151,31 @@ export const projects: Project[] = [
       "Stake Engine",
     ],
     stat: "Art direction + code",
-    cover: neonBrew,
+    cover: midnight13,
     coverAlt:
-      "Neon Brew slot game: a frog alchemist beside five reels in a night-time potion workshop",
-    status: "Designed and built in 2026 for Stake Engine",
-    links: [],
+      "Midnight 13 slot game: a five-by-five grid of clocks, keys, lanterns and ravens between a crooked clock house and a clock tower under a full moon",
+    status: "Live on Stake",
+    links: [
+      {
+        label: "Play on Stake",
+        href: "https://stake.us/casino/games/evrogames-midnight-13",
+      },
+    ],
     summary:
-      "A potion-brewing slot game with a frog alchemist, five reels in a moonlit workshop and two extra rows sealed in wax — art-directed, designed and built end to end.",
+      "A cluster-pays slot set in a haunted clockmaker's town at midnight, where every win winds a cursed clock toward the thirteenth strike — art-directed, designed and built end to end, and live on Stake.",
     brief:
-      "I wanted to see how far a slot game goes when the same person directs the world and writes the code: one character with attitude, a night-time workshop, and an interface you can read at a glance.",
+      "I wanted a slot whose core mechanic is something you can see: a clock that fills up as you win. One mascot with attitude, one hand-painted dark cartoon style, and a bonus that feels earned rather than random.",
     built: [
-      "The full art direction: the frog alchemist, the moonlit workshop, the symbol set and the wax-seal row locks.",
+      "The full art direction in one hand-painted style: background, frame, symbols, win titles, bonus screens and Mr. Thirteen, the plague-doctor clockmaker.",
       "The game, rendered with PixiJS 8 on a fixed 1920×1080 stage (1080×1920 in portrait), animated with GSAP and pixi-filters.",
-      "A Spine 4.2 rig for the frog, played back in Pixi, plus a Web Audio sound layer.",
+      "A Spine 4.2 rig for the mascot, played back in Pixi, plus a Web Audio sound layer.",
       "The interface in Svelte 5: bet bar, menus, rules and bonus screens over the canvas.",
       "A TypeScript game engine that turns each spin into a book of events in Stake's RGS format, with RTP simulation, maths export and a mock RGS server.",
     ],
     details: [
-      "High-pay icons — goggles, mortar, spellbook, ruby — stand apart from bold, colour-coded card letters.",
-      "Two extra reel rows wait behind wax seals above the grid.",
+      "5×5 grid, cluster pays: five or more connected symbols win, then tumble away for new ones to fall in.",
+      "The Cursed Clock: each winning tumble winds it, adding WILDs at 3 and 6 strikes and x2 at 9; the 13th strike opens the free spins.",
+      "The 13th Hour: 10 to 50 free spins with a persistent multiplier climbing from x1 to x100.",
       "An asset pipeline in Python: GPU background removal (BiRefNet), Real-ESRGAN upscaling and ffmpeg, feeding the symbols, UI and Spine rig.",
       "Images generated with ChatGPT, animations with Kling AI and music with Suno, finished in Ableton.",
       "Browser tests with Playwright.",

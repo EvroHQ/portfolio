@@ -1,5 +1,6 @@
 ---
 import { projects } from '../data/projects';
+import { Image } from 'astro:assets';
 import ProjectCover from './ProjectCover.astro';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -33,7 +34,14 @@ const roll = (word: string) => [...word];
             </div>
             <div class="slide__meta">
               <span class="label slide__index">{p.index} · {p.year}</span>
-              <h3 class="slide__title">{p.title}</h3>
+              <div class="slide__name">
+                <h3 class="slide__title">{p.title}</h3>
+                {p.studio && (
+                  <span class="label slide__studio">
+                    by {p.studioLogo ? <Image class="slide__studio-logo" src={p.studioLogo} alt={p.studio} height={48} /> : <b>{p.studio}</b>}
+                  </span>
+                )}
+              </div>
               <p class="slide__kind">{p.kind} <span class="label">{p.stat}</span></p>
             </div>
           </a>
@@ -71,6 +79,10 @@ const roll = (word: string) => [...word];
   .slide.is-gl .slide__media :global(.cover) { opacity: 0; }
   .slide__meta { position: relative; margin-top: 28px; pointer-events: none; }
   .slide__index { display: block; margin: 0 0 10px; color: var(--ember); }
+  .slide__name { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 18px; }
+  .slide__studio-logo { height: clamp(14px, calc(var(--u) * 1.25), 22px); width: auto; }
+  .slide__studio { display: flex; align-items: center; gap: 10px; padding-bottom: .35em; white-space: nowrap; transition: transform .8s var(--ease); }
+  .slide__studio b { color: var(--ember); font-weight: inherit; }
   .slide__title {
     font: 600 clamp(40px, calc(var(--u) * 5.8), 132px)/.86 var(--sans); letter-spacing: -.035em; text-transform: uppercase;
     transition: transform .8s var(--ease), letter-spacing .8s var(--ease);
@@ -93,6 +105,7 @@ const roll = (word: string) => [...word];
 
   @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
     .slide__link:hover .slide__title { transform: translateX(18px); letter-spacing: -.015em; }
+    .slide__link:hover .slide__studio { transform: translateX(30px); }
     .work__soon:hover .work__dot { animation: dot-drop .7s both; }    .slide__link:is(:hover, :focus-visible) .slide__media {
       box-shadow: 0 14px 32px rgb(0 0 0 / .2);
     }
